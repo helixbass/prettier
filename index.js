@@ -283,6 +283,7 @@ function isSourceElement(opts, node) {
     case "flow":
     case "babylon":
     case "typescript":
+    case "coffeescript":
       return jsSourceElements.indexOf(node.type) > -1;
     case "json":
       return jsonSourceElements.indexOf(node.type) > -1;

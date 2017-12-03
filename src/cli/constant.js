@@ -230,6 +230,7 @@ const detailedOptions = normalizeDetailedOptions({
       "flow",
       "babylon",
       "typescript",
+      "coffeescript",
       "css",
       { value: "postcss", deprecated: true, redirect: "css" },
       "less",
