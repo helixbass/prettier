@@ -9,5 +9,6 @@ module.exports = [
   "language-css/parser-postcss",
   "language-html/parser-parse5",
   "language-markdown/parser-markdown",
-  "language-vue/parser-vue"
+  "language-vue/parser-vue",
+  "language-coffeescript/parser-coffeescript"
 ];
