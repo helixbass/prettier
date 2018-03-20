@@ -130,10 +130,9 @@ function genericPrint(path, options, print) {
       ]);
     }
     case "css-atrule": {
-      const hasParams =
-        node.params &&
-        !(node.params.type === "media-query-list" && node.params.value === "");
-      const isDetachedRulesetCall = hasParams && /^\(\s*\)$/.test(node.params);
+      const hasParams = node.params;
+      const isDetachedRulesetCall =
+        hasParams && /^\(\s*\)$/.test(node.raws.params);
       const hasParensAround =
         node.value &&
         node.value.group.group.type === "value-paren_group" &&
@@ -202,64 +201,6 @@ function genericPrint(path, options, print) {
             ])
           : ";"
       ]);
-    }
-    // postcss-media-query-parser
-    case "media-query-list": {
-      const parts = [];
-      path.each(childPath => {
-        const node = childPath.getValue();
-        if (node.type === "media-query" && node.value === "") {
-          return;
-        }
-        parts.push(childPath.call(print));
-      }, "nodes");
-
-      return group(indent(join(line, parts)));
-    }
-    case "media-query": {
-      return concat([
-        join(" ", path.map(print, "nodes")),
-        isLastNode(path, node) ? "" : ","
-      ]);
-    }
-    case "media-type": {
-      const atRuleAncestorNode = getAncestorNode(path, "css-atrule");
-      if (
-        atRuleAncestorNode &&
-        atRuleAncestorNode.name.toLowerCase() === "charset"
-      ) {
-        return node.value;
-      }
-      return adjustNumbers(adjustStrings(node.value, options));
-    }
-    case "media-feature-expression": {
-      if (!node.nodes) {
-        return node.value;
-      }
-      return concat(["(", concat(path.map(print, "nodes")), ")"]);
-    }
-    case "media-feature": {
-      return maybeToLowerCase(
-        adjustStrings(node.value.replace(/ +/g, " "), options)
-      );
-    }
-    case "media-colon": {
-      return concat([node.value, " "]);
-    }
-    case "media-value": {
-      return adjustNumbers(adjustStrings(node.value, options));
-    }
-    case "media-keyword": {
-      return adjustStrings(node.value, options);
-    }
-    case "media-url": {
-      return adjustStrings(
-        node.value.replace(/^url\(\s+/gi, "url(").replace(/\s+\)$/gi, ")"),
-        options
-      );
-    }
-    case "media-unknown": {
-      return adjustStrings(node.value, options);
     }
     // postcss-selector-parser
     case "selector-root-invalid": {
@@ -576,7 +517,8 @@ function genericPrint(path, options, print) {
           isNextRelationalOperator ||
           isNextIfElseKeyword ||
           isForKeyword ||
-          isEachKeyword
+          isEachKeyword ||
+          (atRuleAncestorNode && atRuleAncestorNode.name === "namespace")
         ) {
           parts.push(" ");
         } else if (
