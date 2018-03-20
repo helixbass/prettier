@@ -432,11 +432,20 @@ module.exports = {
       opts = normalizeOptions(opts);
       return parser.parse(text, opts);
     },
-    formatAST: function(ast, opts) {
+    parseAndAttachComments: function(text, opts) {
       opts = normalizeOptions(opts);
+      const { text: _text, ast } = parser.parse(text, opts);
+      attachComments(_text, ast, opts);
+      return { text: _text, ast, opts };
+    },
+    formatAST: function(ast, opts) {
+      // opts = normalizeOptions(opts)
       const doc = printAstToDoc(ast, opts);
       const str = printDocToString(doc, opts);
       return str;
+    },
+    attachComments: function(text, ast, opts) {
+      return attachComments(text, ast, opts);
     },
     // Doesn't handle shebang for now
     formatDoc: function(doc, opts) {
