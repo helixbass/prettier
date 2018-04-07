@@ -430,7 +430,9 @@ module.exports = {
   __debug: {
     parse: function(text, opts) {
       opts = normalizeOptions(opts);
-      return parser.parse(text, opts);
+      // return parser.parse(text, opts);
+      const parsed = parser.parse(text, opts);
+      return { parsed, opts };
     },
     parseAndAttachComments: function(text, opts) {
       opts = normalizeOptions(opts);
