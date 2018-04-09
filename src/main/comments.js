@@ -79,6 +79,8 @@ function getSortedChildNodes(node, text, options, resultArray) {
 // .precedingNode, .enclosingNode, and/or .followingNode properties, at
 // least one of which is guaranteed to be defined.
 function decorateComment(node, comment, text, options) {
+  if (comment.__prettierNodes)
+    return Object.assign(comment, comment.__prettierNodes);
   const locStart = options.locStart;
   const locEnd = options.locEnd;
   const childNodes = getSortedChildNodes(node, text, options);
@@ -253,7 +255,10 @@ function attach(comments, ast, text, options) {
         /* istanbul ignore next */
         addDanglingComment(ast, comment);
       }
-    } else if (privateUtil.hasNewline(text, locEnd(comment))) {
+    } else if (
+      comment.__prettierHasFollowingNewline ||
+      privateUtil.hasNewline(text, locEnd(comment))
+    ) {
       if (
         handleLastFunctionArgComments(
           text,
@@ -1161,6 +1166,7 @@ function printComments(path, print, options, needsSemi) {
 
       const text = options.originalText;
       if (
+        comment.__prettierHasFollowingNewline ||
         privateUtil.hasNewline(
           text,
           privateUtil.skipNewline(text, options.locEnd(comment))
