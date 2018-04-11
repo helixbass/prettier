@@ -256,7 +256,7 @@ function attach(comments, ast, text, options) {
         addDanglingComment(ast, comment);
       }
     } else if (
-      comment.__prettierHasFollowingNewline ||
+      comment.__hasFollowingNewline ||
       privateUtil.hasNewline(text, locEnd(comment))
     ) {
       if (
@@ -1070,6 +1070,7 @@ function printTrailingComment(commentPath, print, options) {
     parentParentNode.superClass === parentNode;
 
   if (
+    comment.__hasPrecedingNewline ||
     privateUtil.hasNewline(options.originalText, options.locStart(comment), {
       backwards: true
     })
@@ -1166,7 +1167,7 @@ function printComments(path, print, options, needsSemi) {
 
       const text = options.originalText;
       if (
-        comment.__prettierHasFollowingNewline ||
+        comment.__hasFollowingNewline ||
         privateUtil.hasNewline(
           text,
           privateUtil.skipNewline(text, options.locEnd(comment))
