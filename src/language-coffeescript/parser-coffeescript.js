@@ -7,7 +7,7 @@ function parse(text, parsers, opts) {
   const coffeescript = require("coffeescript");
 
   const coffeescriptOptions = {
-    nodes: true
+    ast: true
   };
 
   let ast = coffeescript.compile(text, coffeescriptOptions);

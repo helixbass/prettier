@@ -1,20 +1,101 @@
 "use strict";
 
+const privateUtil = require("../common/util");
 const embed = require("./embed");
+
+const doc = require("../doc");
+const docBuilders = doc.builders;
+const { concat, group, hardline, join, line } = docBuilders;
 
 const util = require("util");
 
 function genericPrint(path, options, print) {
-  console.log(util.inspect(path, {colors: true, depth: 10}));
-  return "";
+  // console.log(util.inspect(path, { depth: 10 }));
+  const n = path.getValue();
+
+  if (!n) {
+    return "";
+  }
+
+  if (typeof n === "string") {
+    return n;
+  }
+
+  let parts = [];
+  switch (n.type) {
+    case "File":
+      return path.call(print, "program");
+    case "Program":
+      parts.push(
+        path.call(bodyPath => {
+          return printStatementSequence(bodyPath, options, print);
+        }, "body")
+      );
+
+      if (n.body.length) {
+        parts.push(hardline);
+      }
+
+      return concat(parts);
+    case "ExpressionStatement":
+      return path.call(print, "expression");
+    case "ArrayExpression":
+      parts.push(
+        group(
+          concat([
+            "[",
+            concat([printArrayItems(path, options, "elements", print)]),
+            "]"
+          ])
+        )
+      );
+      return concat(parts);
+    case "NumericLiteral":
+      return privateUtil.printNumber(n.extra.raw);
+  }
 }
 
-const clean = (ast, newObj) => {
+function printStatementSequence(path, options, print) {
+  const printed = [];
 
-};
+  const bodyNode = path.getNode();
+
+  path.map((stmtPath, i) => {
+    const stmt = stmtPath.getValue();
+
+    if (!stmt) {
+      return;
+    }
+
+    const stmtPrinted = print(stmtPath);
+    const parts = [];
+
+    parts.push(stmtPrinted);
+
+    printed.push(concat(parts));
+  });
+
+  return join(hardline, printed);
+}
+
+function printArrayItems(path, options, printPath, print) {
+  const printedElements = [];
+  let separatorParts = [];
+
+  path.each(childPath => {
+    printedElements.push(concat(separatorParts));
+    printedElements.push(print(childPath));
+
+    separatorParts = [",", line];
+  }, printPath);
+
+  return concat(printedElements);
+}
+
+const clean = (ast, newObj) => {};
 
 module.exports = {
-	print: genericPrint,
-	embed,
+  print: genericPrint,
+  embed,
   massageAstNode: clean
 };
