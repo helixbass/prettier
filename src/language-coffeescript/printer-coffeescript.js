@@ -5,7 +5,16 @@ const embed = require("./embed");
 
 const doc = require("../doc");
 const docBuilders = doc.builders;
-const { concat, group, hardline, join, line } = docBuilders;
+const {
+  concat,
+  group,
+  hardline,
+  ifBreak,
+  indent,
+  join,
+  line,
+  softline
+} = docBuilders;
 
 const util = require("util");
 
@@ -44,7 +53,13 @@ function genericPrint(path, options, print) {
         group(
           concat([
             "[",
-            concat([printArrayItems(path, options, "elements", print)]),
+            indent(
+              concat([
+                softline,
+                printArrayItems(path, options, "elements", print)
+              ])
+            ),
+            softline,
             "]"
           ])
         )
@@ -52,6 +67,8 @@ function genericPrint(path, options, print) {
       return concat(parts);
     case "NumericLiteral":
       return privateUtil.printNumber(n.extra.raw);
+    case "StringLiteral":
+      return nodeStr(n, options);
   }
 }
 
@@ -86,10 +103,19 @@ function printArrayItems(path, options, printPath, print) {
     printedElements.push(concat(separatorParts));
     printedElements.push(print(childPath));
 
-    separatorParts = [",", line];
+    separatorParts = [ifBreak("", ","), line];
   }, printPath);
 
   return concat(printedElements);
+}
+
+function nodeStr(node, options) {
+  const raw = rawText(node);
+  return privateUtil.printString(raw, options);
+}
+
+function rawText(node) {
+  return node.extra ? node.extra.raw : node.raw;
 }
 
 const clean = (ast, newObj) => {};
