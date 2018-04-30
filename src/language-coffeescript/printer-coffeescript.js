@@ -73,7 +73,9 @@ function genericPrint(path, options, print) {
         printMemberLookup(path, options, print)
       ]);
     case "FunctionExpression":
-      parts.push("->");
+      parts.push(group(printFunctionParams(path, print, options)));
+
+      parts.push(n.bound ? "=>" : "->");
 
       const body = path.call(bodyPath => print(bodyPath), "body");
 
@@ -96,6 +98,23 @@ function genericPrint(path, options, print) {
     case "StringLiteral":
       return nodeStr(n, options);
   }
+}
+
+function printFunctionParams(path, print, options) {
+  const fun = path.getValue();
+
+  if (!(fun.params && fun.params.length)) {
+    return concat([]); // TODO: is this the right way to return "empty"?
+  }
+
+  let printed = path.map(print, "params");
+
+  return concat([
+    "(",
+    indent(concat([softline, join(concat([ifBreak("", ","), line]), printed)])),
+    softline,
+    ") "
+  ]);
 }
 
 function printOptionalToken(path) {
