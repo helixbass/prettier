@@ -65,11 +65,34 @@ function genericPrint(path, options, print) {
         )
       );
       return concat(parts);
+    case "Identifier":
+      return concat([n.name]);
+    case "MemberExpression":
+      return concat([
+        path.call(print, "object"),
+        printMemberLookup(path, options, print)
+      ]);
     case "NumericLiteral":
       return privateUtil.printNumber(n.extra.raw);
     case "StringLiteral":
       return nodeStr(n, options);
   }
+}
+
+function printOptionalToken(path) {
+  const node = path.getValue();
+  if (!node.optional) {
+    return "";
+  }
+  return "?";
+}
+
+function printMemberLookup(path, options, print) {
+  const property = path.call(print, "property");
+  const n = path.getValue();
+  const optional = printOptionalToken(path);
+
+  return concat([optional, ".", property]);
 }
 
 function printStatementSequence(path, options, print) {
