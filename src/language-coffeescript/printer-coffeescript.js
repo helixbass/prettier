@@ -72,6 +72,25 @@ function genericPrint(path, options, print) {
         path.call(print, "object"),
         printMemberLookup(path, options, print)
       ]);
+    case "FunctionExpression":
+      parts.push("->");
+
+      const body = path.call(bodyPath => print(bodyPath), "body");
+
+      return group(concat([concat(parts), " ", body]));
+    case "BlockStatement":
+      const naked = path.call(bodyPath => {
+        return printStatementSequence(bodyPath, options, print);
+      }, "body");
+
+      const shouldInline = n.body.length === 1;
+      if (shouldInline) {
+        parts.push(naked);
+      } else {
+        parts.push(indent(concat([hardline, naked])));
+      }
+
+      return concat(parts);
     case "NumericLiteral":
       return privateUtil.printNumber(n.extra.raw);
     case "StringLiteral":
