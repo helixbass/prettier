@@ -19,7 +19,7 @@ const {
 const util = require("util");
 
 function genericPrint(path, options, print) {
-  // console.log(util.inspect(path, { depth: 10 }));
+  // return console.log(util.inspect(path, { depth: 10 }));
   const n = path.getValue();
 
   if (!n) {
@@ -48,6 +48,20 @@ function genericPrint(path, options, print) {
       return concat(parts);
     case "ExpressionStatement":
       return path.call(print, "expression");
+    case "AssignmentExpression":
+      return printAssignment(
+        n.left,
+        path.call(print, "left"),
+        concat([" ", n.operator]),
+        n.right,
+        path.call(print, "right"),
+        options
+      );
+    case "BinaryExpression":
+    case "LogicalExpression": {
+      const parts = printBinaryishExpressions(path, print, options, false);
+      return concat(parts);
+    }
     case "ArrayExpression":
       parts.push(
         group(
@@ -87,17 +101,124 @@ function genericPrint(path, options, print) {
 
       const shouldInline = n.body.length === 1;
       if (shouldInline) {
-        parts.push(naked);
+        parts.push(indent(concat([softline, naked])));
       } else {
         parts.push(indent(concat([hardline, naked])));
       }
 
       return concat(parts);
+    case "CallExpression":
+      if (isTestCall(n, path.getParentNode())) {
+        return concat([
+          path.call(print, "callee"),
+          concat([" ", join(", ", path.map(print, "arguments"))])
+        ]);
+      }
+
+      return concat([
+        path.call(print, "callee"),
+        printArgumentsList(path, options, print)
+      ]);
     case "NumericLiteral":
       return privateUtil.printNumber(n.extra.raw);
     case "StringLiteral":
       return nodeStr(n, options);
+    case "UnaryExpression":
+      parts.push(n.operator);
+
+      parts.push(path.call(print, "argument"));
+
+      return concat(parts);
   }
+}
+
+function printBinaryishExpressions(path, print, options, isNested) {
+  let parts = [];
+  const node = path.getValue();
+
+  parts.push(path.call(print, "left"));
+
+  const right = concat([node.operator, " ", path.call(print, "right")]);
+
+  parts.push(" ", right);
+
+  return parts;
+}
+
+function isBlockLevel(path) {
+  const parent = path.getParentNode();
+  return parent.type === "ExpressionStatement";
+}
+
+function printArgumentsList(path, options, print) {
+  const args = path.getValue().arguments;
+
+  const lastArgIndex = args.length - 1;
+  const printedArguments = path.map((argPath, index) => {
+    const arg = argPath.getNode();
+    const parts = [print(argPath)];
+
+    if (index === lastArgIndex) {
+      // do nothing
+    } else {
+      parts.push(ifBreak("", ","), line);
+    }
+
+    return concat(parts);
+  }, "arguments");
+
+  const parensOptional = isBlockLevel(path);
+
+  return group(
+    concat([
+      parensOptional ? ifBreak("(", " ") : "(",
+      indent(concat([softline, concat(printedArguments)])),
+      softline,
+      parensOptional ? ifBreak(")") : ")"
+    ])
+  );
+}
+
+function isTestCall(n, parent) {
+  const unitTestRe = /^test$/;
+
+  if (n.arguments.length === 2) {
+    if (
+      n.callee.type === "Identifier" &&
+      unitTestRe.test(n.callee.name) &&
+      isStringLiteral(n.arguments[0])
+    ) {
+      return (
+        isFunction(n.arguments[1].type) && n.arguments[1].params.length <= 1
+      );
+    }
+  }
+  return false;
+}
+
+function isFunction(type) {
+  return type === "FunctionExpression";
+}
+
+function isStringLiteral(node) {
+  return node.type === "StringLiteral";
+}
+
+function printAssignmentRight(rightNode, printedRight, options) {
+  return indent(concat([line, printedRight]));
+}
+
+function printAssignment(
+  leftNode,
+  printedLeft,
+  operator,
+  rightNode,
+  printedRight,
+  options
+) {
+  const printed = printAssignmentRight(rightNode, printedRight, options);
+
+  return group(concat([printedLeft, operator, printed]));
 }
 
 function printFunctionParams(path, print, options) {
