@@ -68,6 +68,11 @@ function group(contents, opts) {
   if (opts.visible) {
     ret.visible = !!opts.visible;
   }
+  if (opts.shouldBreakIfVisibleGroupBroke) {
+    ret.breakIfVisibleGroupBroke = {
+      count: opts.shouldBreakIfVisibleGroupBroke.count || 0
+    };
+  }
   return ret;
   // blockVisible: !!opts.blockVisible
 }

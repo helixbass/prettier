@@ -14,7 +14,10 @@ function traverseDoc(doc, onEnter, onExit, shouldTraverseConditionalGroups) {
         for (let i = 0; i < doc.parts.length; i++) {
           traverseDocRec(doc.parts[i]);
         }
-      } else if (doc.type === "if-break") {
+      } else if (
+        doc.type === "if-break" ||
+        doc.type === "if-visible-group-broke"
+      ) {
         if (doc.breakContents) {
           traverseDocRec(doc.breakContents);
         }
@@ -44,7 +47,7 @@ function mapDoc(doc, cb) {
   if (doc.type === "concat" || doc.type === "fill") {
     const parts = doc.parts.map(part => mapDoc(part, cb));
     return cb(Object.assign({}, doc, { parts }));
-  } else if (doc.type === "if-break") {
+  } else if (doc.type === "if-break" || doc.type === "if-visible-group-broke") {
     const breakContents = doc.breakContents && mapDoc(doc.breakContents, cb);
     const flatContents = doc.flatContents && mapDoc(doc.flatContents, cb);
     return cb(Object.assign({}, doc, { breakContents, flatContents }));

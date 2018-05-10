@@ -277,6 +277,17 @@ function printDocToString(doc, options) {
 
           break;
         case "group": {
+          if (doc.breakIfVisibleGroupBroke) {
+            const { count } = doc.breakIfVisibleGroupBroke;
+            if (
+              doc.visibleGroups &&
+              doc.visibleGroups.length >= count + 1 &&
+              doc.visibleGroups[doc.visibleGroups.length - (1 + count)] ===
+                MODE_BREAK
+            ) {
+              doc.break = true;
+            }
+          }
           switch (mode) {
             case MODE_FLAT:
               if (!shouldRemeasure) {
