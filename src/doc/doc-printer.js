@@ -173,6 +173,24 @@ function fits(next, restCommands, width, options, mustBeFlat) {
           }
 
           break;
+        case "if-visible-group-broke":
+          const { count } = doc;
+          if (
+            doc.visibleGroups &&
+            doc.visibleGroups.length >= count + 1 &&
+            doc.visibleGroups[doc.visibleGroups.length - (1 + count)] ===
+              MODE_BREAK
+          ) {
+            if (doc.breakContents) {
+              cmds.push([ind, mode, doc.breakContents]);
+            }
+          } else {
+            if (doc.flatContents) {
+              cmds.push([ind, mode, doc.flatContents]);
+            }
+          }
+
+          break;
         case "line":
           switch (mode) {
             // fallthrough
