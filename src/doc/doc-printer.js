@@ -219,6 +219,25 @@ function printDocToString(doc, options) {
 
       pos += util.getStringWidth(doc);
     } else {
+      let markVisible;
+      if (doc.visible) {
+        markVisible = (contents, mode) => {
+          if (typeof contents !== "string") {
+            contents.visibleGroups = contents.visibleGroups || [];
+            contents.visibleGroups.push(mode);
+          }
+          return contents;
+        };
+      }
+      let propagateVisible;
+      if (doc.visibleGroups) {
+        propagateVisible = contents => {
+          if (typeof contents !== "string") {
+            contents.visibleGroups = doc.visibleGroups;
+          }
+          return contents;
+        };
+      }
       switch (doc.type) {
         case "cursor":
           out.push(cursor.placeholder);
@@ -226,26 +245,42 @@ function printDocToString(doc, options) {
           break;
         case "concat":
           for (let i = doc.parts.length - 1; i >= 0; i--) {
-            cmds.push([ind, mode, doc.parts[i]]);
+            cmds.push([
+              ind,
+              mode,
+              doc.visibleGroups ? propagateVisible(doc.parts[i]) : doc.parts[i]
+            ]);
           }
 
           break;
         case "indent":
-          cmds.push([makeIndent(ind, options), mode, doc.contents]);
+          cmds.push([
+            makeIndent(ind, options),
+            mode,
+            doc.visibleGroups ? propagateVisible(doc.contents) : doc.contents
+          ]);
 
           break;
         case "align":
           cmds.push([makeAlign(ind, doc.n, options), mode, doc.contents]);
 
           break;
-        case "group":
+        case "group": {
+          if (doc.visibleGroups) {
+            propagateVisible(doc.contents);
+          }
           switch (mode) {
             case MODE_FLAT:
               if (!shouldRemeasure) {
                 cmds.push([
                   ind,
                   doc.break ? MODE_BREAK : MODE_FLAT,
-                  doc.contents
+                  doc.visible
+                    ? markVisible(
+                        doc.contents,
+                        doc.break ? MODE_BREAK : MODE_FLAT
+                      )
+                    : doc.contents
                 ]);
 
                 break;
@@ -259,6 +294,9 @@ function printDocToString(doc, options) {
               const rem = width - pos;
 
               if (!doc.break && fits(next, cmds, rem, options)) {
+                if (doc.visible) {
+                  next[2] = markVisible(doc.contents, MODE_FLAT);
+                }
                 cmds.push(next);
               } else {
                 // Expanded states are a rare case where a document
@@ -295,7 +333,13 @@ function printDocToString(doc, options) {
                     }
                   }
                 } else {
-                  cmds.push([ind, MODE_BREAK, doc.contents]);
+                  cmds.push([
+                    ind,
+                    MODE_BREAK,
+                    doc.visible
+                      ? markVisible(doc.contents, MODE_BREAK)
+                      : doc.contents
+                  ]);
                 }
               }
 
@@ -303,6 +347,7 @@ function printDocToString(doc, options) {
             }
           }
           break;
+        }
         // Fills each line with as much code as possible before moving to a new
         // line with the same indentation.
         //
@@ -411,6 +456,25 @@ function printDocToString(doc, options) {
           }
 
           break;
+        case "if-visible-group-broke": {
+          const { count } = doc;
+          if (
+            doc.visibleGroups &&
+            doc.visibleGroups.length >= count + 1 &&
+            doc.visibleGroups[doc.visibleGroups.length - (1 + count)] ===
+              MODE_BREAK
+          ) {
+            if (doc.breakContents) {
+              cmds.push([ind, mode, doc.breakContents]);
+            }
+          } else {
+            if (doc.flatContents) {
+              cmds.push([ind, mode, doc.flatContents]);
+            }
+          }
+
+          break;
+        }
         case "line-suffix":
           lineSuffix.push([ind, mode, doc.contents]);
           break;

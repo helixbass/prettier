@@ -52,7 +52,8 @@ function group(contents, opts) {
     type: "group",
     contents: contents,
     break: !!opts.shouldBreak,
-    expandedStates: opts.expandedStates
+    expandedStates: opts.expandedStates,
+    visible: !!opts.visible
   };
 }
 
@@ -94,6 +95,19 @@ function ifBreak(breakContents, flatContents) {
   }
 
   return { type: "if-break", breakContents, flatContents };
+}
+
+function ifVisibleGroupBroke(breakContents, flatContents, { count = 0 } = {}) {
+  if (process.env.NODE_ENV !== "production") {
+    if (breakContents) {
+      assertDoc(breakContents);
+    }
+    if (flatContents) {
+      assertDoc(flatContents);
+    }
+  }
+
+  return { type: "if-visible-group-broke", breakContents, flatContents, count };
 }
 
 function lineSuffix(contents) {
@@ -159,6 +173,7 @@ module.exports = {
   cursor,
   breakParent,
   ifBreak,
+  ifVisibleGroupBroke,
   indent,
   align,
   addAlignmentToDoc,
