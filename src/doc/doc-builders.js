@@ -11,7 +11,9 @@ function assertDoc(val) {
   }
 }
 
-function concat(parts) {
+function concat(parts, opts) {
+  opts = opts || {};
+
   if (process.env.NODE_ENV !== "production") {
     parts.forEach(assertDoc);
   }
@@ -22,7 +24,14 @@ function concat(parts) {
   //   // If it's a single document, no need to concat it.
   //   return parts[0];
   // }
-  return { type: "concat", parts };
+  const ret = {
+    type: "concat",
+    parts
+  };
+  if (opts.blockVisible) {
+    ret.blockVisible = !!opts.blockVisible;
+  }
+  return ret;
 }
 
 function indent(contents) {
@@ -48,13 +57,19 @@ function group(contents, opts) {
     assertDoc(contents);
   }
 
-  return {
+  const ret = {
     type: "group",
     contents: contents,
-    break: !!opts.shouldBreak,
-    expandedStates: opts.expandedStates,
-    visible: !!opts.visible
+    break: !!opts.shouldBreak
   };
+  if (opts.expandedStates) {
+    ret.expandedStates = opts.expandedStates;
+  }
+  if (opts.visible) {
+    ret.visible = !!opts.visible;
+  }
+  return ret;
+  // blockVisible: !!opts.blockVisible
 }
 
 function dedentToRoot(contents) {

@@ -207,6 +207,7 @@ function printDocToString(doc, options) {
   const out = [];
   let shouldRemeasure = false;
   let lineSuffix = [];
+  // dump({ doc });
 
   while (cmds.length !== 0) {
     const x = cmds.pop();
@@ -219,23 +220,21 @@ function printDocToString(doc, options) {
 
       pos += util.getStringWidth(doc);
     } else {
-      let markVisible;
-      if (doc.visible) {
-        markVisible = (contents, mode) => {
+      let propagateAndMarkVisible;
+      if (doc.visibleGroups || doc.visible) {
+        propagateAndMarkVisible = ({ useMode } = {}) => {
+          const [, mode, contents] = cmds[cmds.length - 1];
           if (typeof contents !== "string") {
-            contents.visibleGroups = contents.visibleGroups || [];
-            contents.visibleGroups.push(mode);
+            if (doc.visibleGroups && !contents.blockVisible) {
+              contents.visibleGroups = doc.visibleGroups;
+            }
+            if (doc.visible) {
+              contents.visibleGroups = contents.visibleGroups
+                ? contents.visibleGroups.slice()
+                : [];
+              contents.visibleGroups.push(useMode || mode);
+            }
           }
-          return contents;
-        };
-      }
-      let propagateVisible;
-      if (doc.visibleGroups) {
-        propagateVisible = contents => {
-          if (typeof contents !== "string") {
-            contents.visibleGroups = doc.visibleGroups;
-          }
-          return contents;
         };
       }
       switch (doc.type) {
@@ -245,20 +244,14 @@ function printDocToString(doc, options) {
           break;
         case "concat":
           for (let i = doc.parts.length - 1; i >= 0; i--) {
-            cmds.push([
-              ind,
-              mode,
-              doc.visibleGroups ? propagateVisible(doc.parts[i]) : doc.parts[i]
-            ]);
+            cmds.push([ind, mode, doc.parts[i]]);
+            propagateAndMarkVisible && propagateAndMarkVisible();
           }
 
           break;
         case "indent":
-          cmds.push([
-            makeIndent(ind, options),
-            mode,
-            doc.visibleGroups ? propagateVisible(doc.contents) : doc.contents
-          ]);
+          cmds.push([makeIndent(ind, options), mode, doc.contents]);
+          propagateAndMarkVisible && propagateAndMarkVisible();
 
           break;
         case "align":
@@ -266,23 +259,21 @@ function printDocToString(doc, options) {
 
           break;
         case "group": {
-          if (doc.visibleGroups) {
-            propagateVisible(doc.contents);
-          }
           switch (mode) {
             case MODE_FLAT:
               if (!shouldRemeasure) {
                 cmds.push([
                   ind,
                   doc.break ? MODE_BREAK : MODE_FLAT,
-                  // doc.visible
-                  //   ? markVisible(
-                  //       doc.contents,
-                  //       doc.break ? MODE_BREAK : MODE_FLAT
-                  //     )
-                  //   : doc.contents
                   doc.contents
                 ]);
+                propagateAndMarkVisible && propagateAndMarkVisible();
+                // if (doc.visible) {
+                //   dump({
+                //     noRemeas: doc.contents,
+                //     mode: doc.break ? MODE_BREAK : MODE_FLAT
+                //   });
+                // }
 
                 break;
               }
@@ -295,11 +286,11 @@ function printDocToString(doc, options) {
               const rem = width - pos;
 
               if (!doc.break && fits(next, cmds, rem, options)) {
-                if (doc.visible) {
-                  next[2] = markVisible(doc.contents, MODE_FLAT);
-                  // if (doc.visible) dump({ fits: doc.contents });
-                }
+                // if (doc.visible) {
+                //   dump({ fits: doc.contents });
+                // }
                 cmds.push(next);
+                propagateAndMarkVisible && propagateAndMarkVisible();
               } else {
                 // Expanded states are a rare case where a document
                 // can manually provide multiple representations of
@@ -314,12 +305,15 @@ function printDocToString(doc, options) {
 
                   if (doc.break) {
                     cmds.push([ind, MODE_BREAK, mostExpanded]);
+                    propagateAndMarkVisible && propagateAndMarkVisible();
 
                     break;
                   } else {
                     for (let i = 1; i < doc.expandedStates.length + 1; i++) {
                       if (i >= doc.expandedStates.length) {
                         cmds.push([ind, MODE_BREAK, mostExpanded]);
+                        propagateAndMarkVisible &&
+                          propagateAndMarkVisible({ useMode: MODE_BREAK });
 
                         break;
                       } else {
@@ -328,6 +322,9 @@ function printDocToString(doc, options) {
 
                         if (fits(cmd, cmds, rem, options)) {
                           cmds.push(cmd);
+                          propagateAndMarkVisible &&
+                            propagateAndMarkVisible({ useMode: MODE_BREAK });
+                          // dump({ propagated: cmds[cmds.length - 1] });
 
                           break;
                         }
@@ -335,13 +332,8 @@ function printDocToString(doc, options) {
                     }
                   }
                 } else {
-                  cmds.push([
-                    ind,
-                    MODE_BREAK,
-                    doc.visible
-                      ? markVisible(doc.contents, MODE_BREAK)
-                      : doc.contents
-                  ]);
+                  cmds.push([ind, MODE_BREAK, doc.contents]);
+                  propagateAndMarkVisible && propagateAndMarkVisible();
                   // if (doc.visible) dump({ breaks: doc.contents });
                 }
               }
@@ -583,5 +575,5 @@ function printDocToString(doc, options) {
   return { formatted: out.join("") };
 }
 
-// const dump = obj => console.log(require("util").inspect(obj, false, null));
+const dump = obj => console.log(require("util").inspect(obj, false, null));
 module.exports = { printDocToString };
