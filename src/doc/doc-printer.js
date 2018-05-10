@@ -275,12 +275,13 @@ function printDocToString(doc, options) {
                 cmds.push([
                   ind,
                   doc.break ? MODE_BREAK : MODE_FLAT,
-                  doc.visible
-                    ? markVisible(
-                        doc.contents,
-                        doc.break ? MODE_BREAK : MODE_FLAT
-                      )
-                    : doc.contents
+                  // doc.visible
+                  //   ? markVisible(
+                  //       doc.contents,
+                  //       doc.break ? MODE_BREAK : MODE_FLAT
+                  //     )
+                  //   : doc.contents
+                  doc.contents
                 ]);
 
                 break;
@@ -296,6 +297,7 @@ function printDocToString(doc, options) {
               if (!doc.break && fits(next, cmds, rem, options)) {
                 if (doc.visible) {
                   next[2] = markVisible(doc.contents, MODE_FLAT);
+                  // if (doc.visible) dump({ fits: doc.contents });
                 }
                 cmds.push(next);
               } else {
@@ -340,6 +342,7 @@ function printDocToString(doc, options) {
                       ? markVisible(doc.contents, MODE_BREAK)
                       : doc.contents
                   ]);
+                  // if (doc.visible) dump({ breaks: doc.contents });
                 }
               }
 
@@ -458,6 +461,7 @@ function printDocToString(doc, options) {
           break;
         case "if-visible-group-broke": {
           const { count } = doc;
+          // dump({ doc });
           if (
             doc.visibleGroups &&
             doc.visibleGroups.length >= count + 1 &&
@@ -579,4 +583,5 @@ function printDocToString(doc, options) {
   return { formatted: out.join("") };
 }
 
+// const dump = obj => console.log(require("util").inspect(obj, false, null));
 module.exports = { printDocToString };
