@@ -67,6 +67,9 @@ function group(contents, opts) {
   }
   if (opts.visible) {
     ret.visible = !!opts.visible;
+    if (opts.visible.firstBreakingIndex) {
+      ret.firstBreakingIndex = opts.visible.firstBreakingIndex;
+    }
   }
   if (opts.shouldBreakIfVisibleGroupBroke) {
     ret.breakIfVisibleGroupBroke = {

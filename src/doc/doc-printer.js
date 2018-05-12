@@ -342,7 +342,15 @@ function printDocToString(doc, options) {
                       if (i >= doc.expandedStates.length) {
                         cmds.push([ind, MODE_BREAK, mostExpanded]);
                         propagateAndMarkVisible &&
-                          propagateAndMarkVisible({ useMode: MODE_BREAK });
+                          propagateAndMarkVisible({
+                            useMode:
+                              i >=
+                              (doc.firstBreakingIndex != null
+                                ? doc.firstBreakingIndex
+                                : 0)
+                                ? MODE_BREAK
+                                : MODE_FLAT
+                          });
 
                         break;
                       } else {
@@ -352,7 +360,15 @@ function printDocToString(doc, options) {
                         if (fits(cmd, cmds, rem, options)) {
                           cmds.push(cmd);
                           propagateAndMarkVisible &&
-                            propagateAndMarkVisible({ useMode: MODE_BREAK });
+                            propagateAndMarkVisible({
+                              useMode:
+                                i >=
+                                (doc.firstBreakingIndex != null
+                                  ? doc.firstBreakingIndex
+                                  : 0)
+                                  ? MODE_BREAK
+                                  : MODE_FLAT
+                            });
                           // dump({ propagated: cmds[cmds.length - 1] });
 
                           break;
