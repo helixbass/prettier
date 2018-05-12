@@ -507,10 +507,12 @@ function printDocToString(doc, options) {
           ) {
             if (doc.breakContents) {
               cmds.push([ind, mode, doc.breakContents]);
+              propagateAndMarkVisible && propagateAndMarkVisible();
             }
           } else {
             if (doc.flatContents) {
               cmds.push([ind, mode, doc.flatContents]);
+              propagateAndMarkVisible && propagateAndMarkVisible();
             }
           }
 
