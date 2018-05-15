@@ -268,7 +268,10 @@ module.exports = {
   },
 
   formatAST(ast, opts) {
+    const originalText = opts.originalText;
+    delete opts.originalText;
     opts = normalizeOptions(opts);
+    opts.originalText = originalText;
     const doc = printAstToDoc(ast, opts);
     return printDocToString(doc, opts);
   },

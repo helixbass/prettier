@@ -410,9 +410,6 @@ function genericPrint(path, options, print) {
         const iNextNode = node.groups[i + 1];
         const iNextNextNode = node.groups[i + 2];
 
-        if (isPostcssSimpleVar(iNode, iNextNode)) {
-          continue;
-        }
         // Ignore after latest node (i.e. before semicolon)
         if (!iNextNode) {
           continue;
@@ -430,6 +427,16 @@ function genericPrint(path, options, print) {
 
         // Ignore `~` in Less (i.e. `content: ~"^//* some horrible but needed css hack";`)
         if (iNode.value === "~") {
+          continue;
+        }
+
+        // Ignore `\` (i.e. `$variable: \@small;`)
+        if (iNode.value === "\\") {
+          continue;
+        }
+
+        // Ignore `$$` (i.e. `background-color: $$(style)Color;`)
+        if (isPostcssSimpleVar(iNode, iNextNode)) {
           continue;
         }
 
@@ -452,7 +459,7 @@ function genericPrint(path, options, print) {
         const isNextRightCurlyBrace =
           iNextNode.type === "value-word" && iNextNode.value === "}";
 
-        // Ignore interpolation in SCSS (i.e. ``#{variable}``)
+        // Ignore interpolation in SCSS (i.e. `#{variable}`)
         if (
           isHash ||
           isLeftCurlyBrace ||
@@ -462,6 +469,11 @@ function genericPrint(path, options, print) {
             iNextNode.raws.before === "") ||
           (isRightCurlyBrace && iNextNode.raws && iNextNode.raws.before === "")
         ) {
+          continue;
+        }
+
+        // Ignore css variables and interpolation in SCSS (i.e. `--#{$var}`)
+        if (iNode.value === "--" && iNextNode.value === "#") {
           continue;
         }
 
