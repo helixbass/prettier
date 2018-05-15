@@ -341,33 +341,23 @@ function printDocToString(doc, options) {
                     for (let i = 1; i < doc.expandedStates.length + 1; i++) {
                       if (i >= doc.expandedStates.length) {
                         cmds.push([ind, MODE_BREAK, mostExpanded]);
-                        propagateAndMarkVisible &&
-                          propagateAndMarkVisible({
-                            useMode:
-                              i >=
-                              (doc.firstBreakingIndex != null
-                                ? doc.firstBreakingIndex
-                                : 0)
-                                ? MODE_BREAK
-                                : MODE_FLAT
-                          });
+                        propagateAndMarkVisible && propagateAndMarkVisible();
 
                         break;
                       } else {
                         const state = doc.expandedStates[i];
-                        const cmd = [ind, MODE_FLAT, state];
+                        const useMode =
+                          doc.firstBreakingIndex != null &&
+                          i >= doc.firstBreakingIndex
+                            ? MODE_BREAK
+                            : MODE_FLAT;
+                        const cmd = [ind, useMode, state];
 
                         if (fits(cmd, cmds, rem, options)) {
                           cmds.push(cmd);
                           propagateAndMarkVisible &&
                             propagateAndMarkVisible({
-                              useMode:
-                                i >=
-                                (doc.firstBreakingIndex != null
-                                  ? doc.firstBreakingIndex
-                                  : 0)
-                                  ? MODE_BREAK
-                                  : MODE_FLAT
+                              useMode
                             });
                           // dump({ propagated: cmds[cmds.length - 1] });
 
@@ -487,11 +477,13 @@ function printDocToString(doc, options) {
           if (mode === MODE_BREAK) {
             if (doc.breakContents) {
               cmds.push([ind, mode, doc.breakContents]);
+              propagateAndMarkVisible && propagateAndMarkVisible();
             }
           }
           if (mode === MODE_FLAT) {
             if (doc.flatContents) {
               cmds.push([ind, mode, doc.flatContents]);
+              propagateAndMarkVisible && propagateAndMarkVisible();
             }
           }
 
