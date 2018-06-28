@@ -621,5 +621,4 @@ function printDocToString(doc, options) {
   return { formatted: out.join("") };
 }
 
-const dump = obj => console.log(require("util").inspect(obj, false, null));
 module.exports = { printDocToString };
