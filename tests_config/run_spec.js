@@ -2,9 +2,13 @@
 
 const fs = require("fs");
 const extname = require("path").extname;
-const prettier = require("./require_prettier");
 
 const AST_COMPARE = process.env["AST_COMPARE"];
+const TEST_STANDALONE = process.env["TEST_STANDALONE"];
+
+const prettier = !TEST_STANDALONE
+  ? require("prettier/local")
+  : require("prettier/standalone");
 
 function run_spec(dirname, parsers, options) {
   /* instabul ignore if */
@@ -13,6 +17,13 @@ function run_spec(dirname, parsers, options) {
   }
 
   fs.readdirSync(dirname).forEach(filename => {
+    // We need to have a skipped test with the same name of the snapshots,
+    // so Jest doesn't mark them as obsolete.
+    if (TEST_STANDALONE && parsers.some(skipStandalone)) {
+      test.skip(filename);
+      return;
+    }
+
     const path = dirname + "/" + filename;
     if (
       extname(filename) !== ".snap" &&
@@ -89,37 +100,8 @@ function run_spec(dirname, parsers, options) {
 
 global.run_spec = run_spec;
 
-function stripLocation(ast) {
-  if (Array.isArray(ast)) {
-    return ast.map(e => stripLocation(e));
-  }
-  if (typeof ast === "object") {
-    const newObj = {};
-    for (const key in ast) {
-      if (
-        [
-          "loc",
-          "range",
-          "raw",
-          "comments",
-          "parent",
-          "prev",
-          "__location"
-        ].indexOf(key) !== -1
-      ) {
-        continue;
-      }
-      newObj[key] = stripLocation(ast[key]);
-    }
-    return newObj;
-  }
-  return ast;
-}
-
 function parse(string, opts) {
-  return stripLocation(
-    prettier.__debug.parse(string, opts, /* massage */ true).ast
-  );
+  return prettier.__debug.parse(string, opts, /* massage */ true).ast;
 }
 
 function prettyprint(src, filename, options) {
@@ -143,6 +125,10 @@ function prettyprint(src, filename, options) {
 
 function read(filename) {
   return fs.readFileSync(filename, "utf8");
+}
+
+function skipStandalone(parser) {
+  return new Set(["parse5", "glimmer"]).has(parser);
 }
 
 /**

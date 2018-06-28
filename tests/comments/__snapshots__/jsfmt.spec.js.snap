@@ -151,6 +151,10 @@ functionCall(1 + /** @type {string} */ (value), /** @type {!Foo} */ ({}));
 function returnValue() {
   return /** @type {!Array.<string>} */ (['hello', 'you']);
 }
+
+var newArray = /** @type {array} */ (numberOrString).map(x => x);
+var newArray = /** @type {array} */ ((numberOrString)).map(x => x);
+var newArray = /** @type {array} */ ((numberOrString).map(x => x));
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // test to make sure comments are attached correctly
 let inlineComment = /* some comment */ someReallyLongFunctionCall(
@@ -170,6 +174,10 @@ functionCall(1 + /** @type {string} */ (value), /** @type {!Foo} */ ({}));
 function returnValue() {
   return /** @type {!Array.<string>} */ (["hello", "you"]);
 }
+
+var newArray = /** @type {array} */ (numberOrString).map(x => x);
+var newArray = /** @type {array} */ (numberOrString).map(x => x);
+var newArray = /** @type {array} */ (numberOrString.map(x => x));
 
 `;
 
@@ -1757,6 +1765,24 @@ let obj = [
   // Comment
   'val'
 ]
+
+let obj = // Comment
+\`val\`;
+
+let obj = // Comment
+\`
+val
+val
+\`;
+
+let obj = // Comment
+tag\`val\`;
+
+let obj = // Comment
+tag\`
+val
+val
+\`;
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 let obj =
   // Comment
@@ -1797,5 +1823,27 @@ let obj = [
   // Comment
   "val"
 ];
+
+let obj =
+  // Comment
+  \`val\`;
+
+let obj =
+  // Comment
+  \`
+val
+val
+\`;
+
+let obj =
+  // Comment
+  tag\`val\`;
+
+let obj =
+  // Comment
+  tag\`
+val
+val
+\`;
 
 `;

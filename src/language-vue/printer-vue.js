@@ -1,9 +1,8 @@
 "use strict";
 
 const embed = require("./embed");
-const docBuilders = require("../doc").builders;
-const concat = docBuilders.concat;
-const hardline = docBuilders.hardline;
+const { concat, hardline } = require("../doc").builders;
+const { insertPragma } = require("./pragma");
 
 function genericPrint(path, options, print) {
   const n = path.getValue();
@@ -40,5 +39,6 @@ const clean = (ast, newObj) => {
 module.exports = {
   print: genericPrint,
   embed,
+  insertPragma,
   massageAstNode: clean
 };

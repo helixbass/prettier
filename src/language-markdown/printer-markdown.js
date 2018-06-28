@@ -1,26 +1,32 @@
 "use strict";
 
-const docUtils = require("../doc/doc-utils");
 const privateUtil = require("../common/util");
 const embed = require("./embed");
 const pragma = require("./pragma");
-const doc = require("../doc");
-const docBuilders = doc.builders;
-const concat = docBuilders.concat;
-const join = docBuilders.join;
-const line = docBuilders.line;
-const hardline = docBuilders.hardline;
-const softline = docBuilders.softline;
-const fill = docBuilders.fill;
-const align = docBuilders.align;
-const group = docBuilders.group;
-const printDocToString = doc.printer.printDocToString;
+const {
+  builders: {
+    concat,
+    join,
+    line,
+    literalline,
+    markAsRoot,
+    hardline,
+    softline,
+    fill,
+    align,
+    indent,
+    group
+  },
+  utils: { mapDoc },
+  printer: { printDocToString }
+} = require("../doc");
 
 const SINGLE_LINE_NODE_TYPES = ["heading", "tableCell", "link"];
 
 const SIBLING_NODE_TYPES = ["listItem", "definition", "footnoteDefinition"];
 
 const INLINE_NODE_TYPES = [
+  "liquidNode",
   "inlineCode",
   "emphasis",
   "strong",
@@ -53,7 +59,8 @@ function genericPrint(path, options, print) {
           options.originalText.slice(
             node.position.start.offset,
             node.position.end.offset
-          )
+          ),
+          options
         )
         .map(
           node =>
@@ -140,8 +147,19 @@ function genericPrint(path, options, print) {
     }
     case "link":
       switch (options.originalText[node.position.start.offset]) {
-        case "<":
-          return concat(["<", node.url, ">"]);
+        case "<": {
+          const mailto = "mailto:";
+          const url =
+            // <hello@example.com> is parsed as { url: "mailto:hello@example.com" }
+            node.url.startsWith(mailto) &&
+            options.originalText.slice(
+              node.position.start.offset + 1,
+              node.position.start.offset + 1 + mailto.length
+            ) !== mailto
+              ? node.url.slice(mailto.length)
+              : node.url;
+          return concat(["<", url, ">"]);
+        }
         case "[":
           return concat([
             "[",
@@ -208,20 +226,19 @@ function genericPrint(path, options, print) {
         style
       ]);
     }
-    case "yaml":
-    case "toml": {
-      const style = node.type === "yaml" ? "---" : "+++";
-      return node.value
-        ? concat([style, hardline, node.value, hardline, style])
-        : concat([style, hardline, style]);
-    }
+    case "front-matter":
+      return node.value;
     case "html": {
       const parentNode = path.getParentNode();
-      return replaceNewlinesWithHardlines(
+      const value =
         parentNode.type === "root" &&
         privateUtil.getLast(parentNode.children) === node
           ? node.value.trimRight()
-          : node.value
+          : node.value;
+      const isHtmlComment = /^<!--[\s\S]*-->$/.test(value);
+      return replaceNewlinesWith(
+        value,
+        isHtmlComment ? hardline : markAsRoot(literalline)
       );
     }
     case "list": {
@@ -308,14 +325,23 @@ function genericPrint(path, options, print) {
             node.referenceType === "collapsed" ? "[]" : ""
           ]);
       }
-    case "definition":
-      return concat([
-        "[",
-        node.identifier,
-        "]: ",
-        printUrl(node.url),
-        printTitle(node.title, options)
-      ]);
+    case "definition": {
+      const lineOrSpace = options.proseWrap === "always" ? line : " ";
+      return group(
+        concat([
+          concat(["[", node.identifier, "]:"]),
+          indent(
+            concat([
+              lineOrSpace,
+              printUrl(node.url),
+              node.title === null
+                ? ""
+                : concat([lineOrSpace, printTitle(node.title, options, false)])
+            ])
+          )
+        ])
+      );
+    }
     case "footnote":
       return concat(["[^", printChildren(path, options, print), "]"]);
     case "footnoteReference":
@@ -347,12 +373,11 @@ function genericPrint(path, options, print) {
     case "tableCell":
       return printChildren(path, options, print);
     case "break":
-      return concat([
-        /\s/.test(options.originalText[node.position.start.offset])
-          ? "  "
-          : "\\",
-        hardline
-      ]);
+      return /\s/.test(options.originalText[node.position.start.offset])
+        ? concat(["  ", markAsRoot(literalline)])
+        : concat(["\\", hardline]);
+    case "liquidNode":
+      return replaceNewlinesWith(node.value, hardline);
     case "tableRow": // handled in "table"
     case "listItem": // handled in "list"
     default:
@@ -403,8 +428,8 @@ function getNthListSiblingIndex(node, parentNode) {
   );
 }
 
-function replaceNewlinesWithHardlines(str) {
-  return join(hardline, str.split("\n"));
+function replaceNewlinesWith(str, doc) {
+  return join(doc, str.split("\n"));
 }
 
 function getNthSiblingIndex(node, parentNode, condition) {
@@ -694,9 +719,20 @@ function shouldPrePrintDoubleHardline(node, data) {
 
   const isPrevNodePrettierIgnore = isPrettierIgnore(data.prevNode) === "next";
 
+  const isBlockHtmlWithoutBlankLineBetweenPrevHtml =
+    node.type === "html" &&
+    data.prevNode &&
+    data.prevNode.type === "html" &&
+    data.prevNode.position.end.line + 1 === node.position.start.line;
+
   return (
     isPrevNodeLooseListItem ||
-    !(isSiblingNode || isInTightListItem || isPrevNodePrettierIgnore)
+    !(
+      isSiblingNode ||
+      isInTightListItem ||
+      isPrevNodePrettierIgnore ||
+      isBlockHtmlWithoutBlankLineBetweenPrevHtml
+    )
   );
 }
 
@@ -723,7 +759,7 @@ function shouldRemainTheSameContent(path) {
 }
 
 function normalizeDoc(doc) {
-  return docUtils.mapDoc(doc, currentDoc => {
+  return mapDoc(doc, currentDoc => {
     if (!currentDoc.parts) {
       return currentDoc;
     }
@@ -755,12 +791,19 @@ function printUrl(url, dangerousCharOrChars) {
     : url;
 }
 
-function printTitle(title, options) {
+function printTitle(title, options, printSpace) {
+  if (printSpace == null) {
+    printSpace = true;
+  }
+
   if (!title) {
     return "";
   }
+  if (printSpace) {
+    return " " + printTitle(title, options, false);
+  }
   if (title.includes('"') && title.includes("'") && !title.includes(")")) {
-    return ` (${title})`; // avoid escaped quotes
+    return `(${title})`; // avoid escaped quotes
   }
   // faster than using RegExps: https://jsperf.com/performance-of-match-vs-split
   const singleCount = title.split("'").length - 1;
@@ -774,7 +817,7 @@ function printTitle(title, options) {
           ? "'"
           : '"';
   title = title.replace(new RegExp(`(${quote})`, "g"), "\\$1");
-  return ` ${quote}${title}${quote}`;
+  return `${quote}${title}${quote}`;
 }
 
 function normalizeParts(parts) {
@@ -812,8 +855,7 @@ function clean(ast, newObj, parent) {
     parent.type === "root" &&
     parent.children.length > 0 &&
     (parent.children[0] === ast ||
-      ((parent.children[0].type === "yaml" ||
-        parent.children[0].type === "toml") &&
+      (parent.children[0].type === "front-matter" &&
         parent.children[1] === ast)) &&
     ast.type === "html" &&
     pragma.startWithPragma(ast.value)

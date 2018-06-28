@@ -8,12 +8,11 @@ const comments = require("./comments");
 const parser = require("./parser");
 const printAstToDoc = require("./ast-to-doc");
 const rangeUtil = require("./range-util");
-
 const privateUtil = require("../common/util");
-
-const doc = require("../doc");
-const printDocToString = doc.printer.printDocToString;
-const printDocToDebug = doc.debug.printDocToDebug;
+const {
+  printer: { printDocToString },
+  debug: { printDocToDebug }
+} = require("../doc");
 
 const UTF8BOM = 0xfeff;
 
@@ -64,6 +63,10 @@ function attachComments(text, ast, opts) {
 }
 
 function coreFormat(text, opts, addAlignmentSize) {
+  if (!text || !text.trim().length) {
+    return { formatted: "", cursorOffset: 0 };
+  }
+
   addAlignmentSize = addAlignmentSize || 0;
 
   const parsed = parser.parse(text, opts);
@@ -227,14 +230,14 @@ function formatRange(text, opts) {
 }
 
 function format(text, opts) {
-  if (opts.rangeStart > 0 || opts.rangeEnd < text.length) {
-    return formatRange(text, opts);
-  }
-
   const selectedParser = parser.resolveParser(opts);
   const hasPragma = !selectedParser.hasPragma || selectedParser.hasPragma(text);
   if (opts.requirePragma && !hasPragma) {
     return { formatted: text };
+  }
+
+  if (opts.rangeStart > 0 || opts.rangeEnd < text.length) {
+    return formatRange(text, opts);
   }
 
   const hasUnicodeBOM = text.charCodeAt(0) === UTF8BOM;
@@ -255,7 +258,8 @@ function format(text, opts) {
 
 module.exports = {
   formatWithCursor(text, opts) {
-    return format(text, normalizeOptions(opts));
+    opts = normalizeOptions(opts);
+    return format(text, opts);
   },
 
   parse(text, opts, massage) {
@@ -275,8 +279,8 @@ module.exports = {
 
   // Doesn't handle shebang for now
   formatDoc(doc, opts) {
-    opts = normalizeOptions(opts);
     const debug = printDocToDebug(doc);
+    opts = normalizeOptions(Object.assign({}, opts, { parser: "babylon" }));
     return format(debug, opts).formatted;
   },
 

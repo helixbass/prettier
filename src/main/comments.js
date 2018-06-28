@@ -1,23 +1,28 @@
 "use strict";
 
 const assert = require("assert");
-const docBuilders = require("../doc").builders;
-const concat = docBuilders.concat;
-const hardline = docBuilders.hardline;
-const breakParent = docBuilders.breakParent;
-const indent = docBuilders.indent;
-const lineSuffix = docBuilders.lineSuffix;
-const join = docBuilders.join;
-const cursor = docBuilders.cursor;
-const privateUtil = require("../common/util");
-const sharedUtil = require("../common/util-shared");
+const {
+  concat,
+  hardline,
+  breakParent,
+  indent,
+  lineSuffix,
+  join,
+  cursor
+} = require("../doc").builders;
+const {
+  hasNewline,
+  skipNewline,
+  isPreviousLineEmpty
+} = require("../common/util");
+const {
+  addLeadingComment,
+  addDanglingComment,
+  addTrailingComment
+} = require("../common/util-shared");
 const childNodesCacheKey = Symbol("child-nodes");
 
-const addLeadingComment = sharedUtil.addLeadingComment;
-const addTrailingComment = sharedUtil.addTrailingComment;
-const addDanglingComment = sharedUtil.addDanglingComment;
-
-function getSortedChildNodes(node, text, options, resultArray) {
+function getSortedChildNodes(node, options, resultArray) {
   if (!node) {
     return;
   }
@@ -73,7 +78,7 @@ function getSortedChildNodes(node, text, options, resultArray) {
   }
 
   childNodes.forEach(childNode => {
-    getSortedChildNodes(childNode, text, options, resultArray);
+    getSortedChildNodes(childNode, options, resultArray);
   });
 
   return resultArray;
@@ -82,10 +87,10 @@ function getSortedChildNodes(node, text, options, resultArray) {
 // As efficiently as possible, decorate the comment object with
 // .precedingNode, .enclosingNode, and/or .followingNode properties, at
 // least one of which is guaranteed to be defined.
-function decorateComment(node, comment, text, options) {
+function decorateComment(node, comment, options) {
   const locStart = options.locStart;
   const locEnd = options.locEnd;
-  const childNodes = getSortedChildNodes(node, text, options);
+  const childNodes = getSortedChildNodes(node, options);
   let precedingNode;
   let followingNode;
   // Time to dust off the old binary search robes and wizard hat.
@@ -102,7 +107,7 @@ function decorateComment(node, comment, text, options) {
       // The comment is completely contained by this child node.
       comment.enclosingNode = child;
 
-      decorateComment(child, comment, text, options);
+      decorateComment(child, comment, options);
       return; // Abandon the binary search at this level.
     }
 
@@ -186,7 +191,7 @@ function attach(comments, ast, text, options) {
       return;
     }
 
-    decorateComment(ast, comment, text, options);
+    decorateComment(ast, comment, options);
 
     const precedingNode = comment.precedingNode;
     const enclosingNode = comment.enclosingNode;
@@ -207,7 +212,7 @@ function attach(comments, ast, text, options) {
 
     const isLastComment = comments.length - 1 === i;
 
-    if (privateUtil.hasNewline(text, locStart(comment), { backwards: true })) {
+    if (hasNewline(text, locStart(comment), { backwards: true })) {
       // If a comment exists on its own line, prefer a leading comment.
       // We also need to check if it's the first line of the file.
       if (
@@ -226,7 +231,7 @@ function attach(comments, ast, text, options) {
         /* istanbul ignore next */
         addDanglingComment(ast, comment);
       }
-    } else if (privateUtil.hasNewline(text, locEnd(comment))) {
+    } else if (hasNewline(text, locEnd(comment))) {
       if (
         pluginHandleEndOfLineComment(comment, text, options, ast, isLastComment)
       ) {
@@ -379,9 +384,7 @@ function printLeadingComment(commentPath, print, options) {
   if (isBlock) {
     return concat([
       contents,
-      privateUtil.hasNewline(options.originalText, options.locEnd(comment))
-        ? hardline
-        : " "
+      hasNewline(options.originalText, options.locEnd(comment)) ? hardline : " "
     ]);
   }
 
@@ -409,7 +412,7 @@ function printTrailingComment(commentPath, print, options) {
     parentParentNode.superClass === parentNode;
 
   if (
-    privateUtil.hasNewline(options.originalText, options.locStart(comment), {
+    hasNewline(options.originalText, options.locStart(comment), {
       backwards: true
     })
   ) {
@@ -425,7 +428,7 @@ function printTrailingComment(commentPath, print, options) {
     // if this a comment on its own line; normal trailing comments are
     // always at the end of another expression.
 
-    const isLineBeforeEmpty = privateUtil.isPreviousLineEmpty(
+    const isLineBeforeEmpty = isPreviousLineEmpty(
       options.originalText,
       comment,
       options.locStart
@@ -504,12 +507,7 @@ function printComments(path, print, options, needsSemi) {
       leadingParts.push(contents);
 
       const text = options.originalText;
-      if (
-        privateUtil.hasNewline(
-          text,
-          privateUtil.skipNewline(text, options.locEnd(comment))
-        )
-      ) {
+      if (hasNewline(text, skipNewline(text, options.locEnd(comment)))) {
         leadingParts.push(hardline);
       }
     } else if (trailing) {

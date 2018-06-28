@@ -2,6 +2,34 @@
 
 const htmlTagNames = require("html-tag-names");
 
+const colorAdjusterFunctions = [
+  "red",
+  "green",
+  "blue",
+  "alpha",
+  "a",
+  "rgb",
+  "hue",
+  "h",
+  "saturation",
+  "s",
+  "lightness",
+  "l",
+  "whiteness",
+  "w",
+  "blackness",
+  "b",
+  "tint",
+  "shade",
+  "blend",
+  "blenda",
+  "contrast",
+  "hsl",
+  "hsla",
+  "hwb",
+  "hwba"
+];
+
 function getAncestorCounter(path, typeOrTypes) {
   const types = [].concat(typeOrTypes);
 
@@ -90,15 +118,29 @@ function insideICSSRuleNode(path) {
   );
 }
 
-function insideAtRuleNode(path, atRuleName) {
+function insideAtRuleNode(path, atRuleNameOrAtRuleNames) {
+  const atRuleNames = [].concat(atRuleNameOrAtRuleNames);
   const atRuleAncestorNode = getAncestorNode(path, "css-atrule");
 
   return (
-    atRuleAncestorNode && atRuleAncestorNode.name.toLowerCase() === atRuleName
+    atRuleAncestorNode &&
+    atRuleNames.indexOf(atRuleAncestorNode.name.toLowerCase()) !== -1
   );
 }
 
-function isURLFunction(node) {
+function insideURLFunctionInImportAtRuleNode(path) {
+  const node = path.getValue();
+  const atRuleAncestorNode = getAncestorNode(path, "css-atrule");
+
+  return (
+    atRuleAncestorNode &&
+    atRuleAncestorNode.name === "import" &&
+    node.groups[0].value === "url" &&
+    node.groups.length === 2
+  );
+}
+
+function isURLFunctionNode(node) {
   return node.type === "value-func" && node.value.toLowerCase() === "url";
 }
 
@@ -115,20 +157,18 @@ function isHTMLTag(value) {
   return htmlTagNames.indexOf(value.toLowerCase()) !== -1;
 }
 
-function isDetachedRulesetDeclaration(node) {
+function isDetachedRulesetDeclarationNode(node) {
   // If a Less file ends up being parsed with the SCSS parser, Less
   // variable declarations will be parsed as atrules with names ending
   // with a colon, so keep the original case then.
-  return (
-    node.selector &&
-    node.selector.type !== "selector-root-invalid" &&
-    ((typeof node.selector === "string" && /^@.+:.*$/.test(node.selector)) ||
-      (node.selector.value && /^@.+:.*$/.test(node.selector.value)))
-  );
-}
+  if (!node.selector) {
+    return false;
+  }
 
-function isParenGroupNode(node) {
-  return node.type === "value-paren_group";
+  return (
+    (typeof node.selector === "string" && /^@.+:.*$/.test(node.selector)) ||
+    (node.selector.value && /^@.+:.*$/.test(node.selector.value))
+  );
 }
 
 function isForKeywordNode(node) {
@@ -149,10 +189,33 @@ function isEachKeywordNode(node) {
   return node.type === "value-word" && node.value === "in";
 }
 
+function isMultiplicationNode(node) {
+  return node.type === "value-operator" && node.value === "*";
+}
+
+function isDivisionNode(node) {
+  return node.type === "value-operator" && node.value === "/";
+}
+
+function isAdditionNode(node) {
+  return node.type === "value-operator" && node.value === "+";
+}
+
+function isSubtractionNode(node) {
+  return node.type === "value-operator" && node.value === "-";
+}
+
+function isModuloNode(node) {
+  return node.type === "value-operator" && node.value === "%";
+}
+
 function isMathOperatorNode(node) {
   return (
-    node.type === "value-operator" &&
-    ["+", "-", "/", "*", "%"].indexOf(node.value) !== -1
+    isMultiplicationNode(node) ||
+    isDivisionNode(node) ||
+    isAdditionNode(node) ||
+    isSubtractionNode(node) ||
+    isModuloNode(node)
   );
 }
 
@@ -174,23 +237,33 @@ function isSCSSControlDirectiveNode(node) {
   );
 }
 
-function isSCSSMap(node) {
-  return node.type === "css-decl" && node.prop && node.prop.startsWith("$");
+function isSCSSNestedPropertyNode(node) {
+  if (!node.selector) {
+    return false;
+  }
+
+  return node.selector
+    .replace(/\/\*.*?\*\//, "")
+    .replace(/\/\/.*?\n/, "")
+    .trim()
+    .endsWith(":");
 }
 
-function hasLessExtendValueNode(node) {
+function isDetachedRulesetCallNode(node) {
+  return node.raws && node.raws.params && /^\(\s*\)$/.test(node.raws.params);
+}
+
+function isPostcssSimpleVarNode(currentNode, nextNode) {
   return (
-    node.value &&
-    node.value.type === "value-root" &&
-    node.value.group &&
-    node.value.group.type === "value-value" &&
-    node.value.group.group &&
-    node.value.group.group.type === "value-func" &&
-    node.value.group.group.value === "extend"
+    currentNode.value === "$$" &&
+    currentNode.type === "value-func" &&
+    nextNode &&
+    nextNode.type === "value-word" &&
+    !nextNode.raws.before
   );
 }
 
-function hasComposesValueNode(node) {
+function hasComposesNode(node) {
   return (
     node.value &&
     node.value.type === "value-root" &&
@@ -200,7 +273,7 @@ function hasComposesValueNode(node) {
   );
 }
 
-function hasParensAroundValueNode(node) {
+function hasParensAroundNode(node) {
   return (
     node.value &&
     node.value.group &&
@@ -211,41 +284,147 @@ function hasParensAroundValueNode(node) {
   );
 }
 
-function isPostcssSimpleVar(currentNode, nextNode) {
+function hasEmptyRawBefore(node) {
+  return node.raws && node.raws.before === "";
+}
+
+function isKeyValuePairNode(node) {
   return (
-    currentNode.value === "$$" &&
-    currentNode.type === "value-func" &&
-    nextNode &&
-    nextNode.type === "value-word" &&
-    !nextNode.raws.before
+    node.type === "value-comma_group" &&
+    node.groups &&
+    node.groups[1] &&
+    node.groups[1].type === "value-colon"
   );
 }
+
+function isKeyValuePairInParenGroupNode(node) {
+  return (
+    node.type === "value-paren_group" &&
+    node.groups &&
+    node.groups[0] &&
+    isKeyValuePairNode(node.groups[0])
+  );
+}
+
+function isSCSSMapItemNode(path) {
+  const node = path.getValue();
+
+  // Ignore empty item (i.e. `$key: ()`)
+  if (node.groups.length === 0) {
+    return false;
+  }
+
+  const parentParentNode = path.getParentNode(1);
+
+  // Check open parens contain key/value pair (i.e. `(key: value)` and `(key: (value, other-value)`)
+  if (
+    !isKeyValuePairInParenGroupNode(node) &&
+    !(parentParentNode && isKeyValuePairInParenGroupNode(parentParentNode))
+  ) {
+    return false;
+  }
+
+  const declNode = getAncestorNode(path, "css-decl");
+
+  // SCSS map declaration (i.e. `$map: (key: value, other-key: other-value)`)
+  if (declNode && declNode.prop && declNode.prop.startsWith("$")) {
+    return true;
+  }
+
+  // List as value of key inside SCSS map (i.e. `$map: (key: (value other-value other-other-value))`)
+  if (isKeyValuePairInParenGroupNode(parentParentNode)) {
+    return true;
+  }
+
+  // SCSS Map is argument of function (i.e. `func((key: value, other-key: other-value))`)
+  if (parentParentNode.type === "value-func") {
+    return true;
+  }
+
+  return false;
+}
+
+function isInlineValueCommentNode(node) {
+  return node.type === "value-comment" && node.inline;
+}
+
+function isHashNode(node) {
+  return node.type === "value-word" && node.value === "#";
+}
+
+function isLeftCurlyBraceNode(node) {
+  return node.type === "value-word" && node.value === "{";
+}
+
+function isRightCurlyBraceNode(node) {
+  return node.type === "value-word" && node.value === "}";
+}
+
+function isWordNode(node) {
+  return ["value-word", "value-atword"].indexOf(node.type) !== -1;
+}
+
+function isColonNode(node) {
+  return node.type === "value-colon";
+}
+
+function isMediaAndSupportsKeywords(node) {
+  return (
+    node.value && ["not", "and", "or"].indexOf(node.value.toLowerCase()) !== -1
+  );
+}
+
+function isColorAdjusterFuncNode(node) {
+  if (node.type !== "value-func") {
+    return false;
+  }
+
+  return colorAdjusterFunctions.indexOf(node.value.toLowerCase()) !== -1;
+}
+
 module.exports = {
   getAncestorCounter,
   getAncestorNode,
   getPropOfDeclNode,
+  maybeToLowerCase,
   insideValueFunctionNode,
   insideICSSRuleNode,
   insideAtRuleNode,
-  isLastNode,
-  isSCSSControlDirectiveNode,
-  isDetachedRulesetDeclaration,
+  insideURLFunctionInImportAtRuleNode,
   isKeyframeAtRuleKeywords,
   isHTMLTag,
+  isWideKeywords,
+  isSCSS,
+  isLastNode,
+  isSCSSControlDirectiveNode,
+  isDetachedRulesetDeclarationNode,
   isRelationalOperatorNode,
   isEqualityOperatorNode,
+  isMultiplicationNode,
+  isDivisionNode,
+  isAdditionNode,
+  isSubtractionNode,
+  isModuloNode,
   isMathOperatorNode,
   isEachKeywordNode,
-  isParenGroupNode,
   isForKeywordNode,
-  isSCSS,
-  isSCSSMap,
-  isURLFunction,
-  isWideKeywords,
+  isURLFunctionNode,
   isIfElseKeywordNode,
-  maybeToLowerCase,
-  hasLessExtendValueNode,
-  hasComposesValueNode,
-  hasParensAroundValueNode,
-  isPostcssSimpleVar
+  hasComposesNode,
+  hasParensAroundNode,
+  hasEmptyRawBefore,
+  isSCSSNestedPropertyNode,
+  isDetachedRulesetCallNode,
+  isPostcssSimpleVarNode,
+  isKeyValuePairNode,
+  isKeyValuePairInParenGroupNode,
+  isSCSSMapItemNode,
+  isInlineValueCommentNode,
+  isHashNode,
+  isLeftCurlyBraceNode,
+  isRightCurlyBraceNode,
+  isWordNode,
+  isColonNode,
+  isMediaAndSupportsKeywords,
+  isColorAdjusterFuncNode
 };

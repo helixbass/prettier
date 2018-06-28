@@ -5,19 +5,39 @@ const assert = require("assert");
 const util = require("../common/util");
 const comments = require("./comments");
 
-function hasClosureCompilerTypeCastComment(text, node, locEnd) {
+function hasClosureCompilerTypeCastComment(text, path, locStart, locEnd) {
   // https://github.com/google/closure-compiler/wiki/Annotating-Types#type-casts
   // Syntax example: var x = /** @type {string} */ (fruit);
+
+  const n = path.getValue();
+
   return (
-    node.comments &&
-    node.comments.some(
-      comment =>
-        comment.leading &&
-        comments.isBlockComment(comment) &&
-        comment.value.match(/^\*\s*@type\s*{[^}]+}\s*$/) &&
-        util.getNextNonSpaceNonCommentCharacter(text, comment, locEnd) === "("
-    )
+    util.getNextNonSpaceNonCommentCharacter(text, n, locEnd) === ")" &&
+    (hasTypeCastComment(n) || hasAncestorTypeCastComment(0))
   );
+
+  // for sub-item: /** @type {array} */ (numberOrString).map(x => x);
+  function hasAncestorTypeCastComment(index) {
+    const ancestor = path.getParentNode(index);
+    return ancestor &&
+      util.getNextNonSpaceNonCommentCharacter(text, ancestor, locEnd) !== ")" &&
+      /^[\s(]*$/.test(text.slice(locStart(ancestor), locStart(n)))
+      ? hasTypeCastComment(ancestor) || hasAncestorTypeCastComment(index + 1)
+      : false;
+  }
+
+  function hasTypeCastComment(node) {
+    return (
+      node.comments &&
+      node.comments.some(
+        comment =>
+          comment.leading &&
+          comments.isBlockComment(comment) &&
+          comment.value.match(/^\*\s*@type\s*{[^}]+}\s*$/) &&
+          util.getNextNonSpaceNonCommentCharacter(text, comment, locEnd) === "("
+      )
+    );
+  }
 }
 
 function needsParens(path, options) {
@@ -46,7 +66,8 @@ function needsParens(path, options) {
   if (
     hasClosureCompilerTypeCastComment(
       options.originalText,
-      node,
+      path,
+      options.locStart,
       options.locEnd
     )
   ) {
@@ -91,10 +112,13 @@ function needsParens(path, options) {
     node.type !== "SequenceExpression" && // these have parens added anyway
       util.startsWithNoLookaheadToken(
         node,
-        /* forbidFunctionAndClass */ false
+        /* forbidFunctionClassAndDoExpr */ false
       )) ||
     (parent.type === "ExpressionStatement" &&
-      util.startsWithNoLookaheadToken(node, /* forbidFunctionAndClass */ true))
+      util.startsWithNoLookaheadToken(
+        node,
+        /* forbidFunctionClassAndDoExpr */ true
+      ))
   ) {
     return true;
   }
@@ -376,12 +400,22 @@ function needsParens(path, options) {
     case "NullableTypeAnnotation":
       return parent.type === "ArrayTypeAnnotation";
 
-    case "FunctionTypeAnnotation":
+    case "FunctionTypeAnnotation": {
+      const ancestor =
+        parent.type === "NullableTypeAnnotation"
+          ? path.getParentNode(1)
+          : parent;
+
       return (
-        parent.type === "UnionTypeAnnotation" ||
-        parent.type === "IntersectionTypeAnnotation" ||
-        parent.type === "ArrayTypeAnnotation"
+        ancestor.type === "UnionTypeAnnotation" ||
+        ancestor.type === "IntersectionTypeAnnotation" ||
+        ancestor.type === "ArrayTypeAnnotation" ||
+        // We should check ancestor's parent to know whether the parentheses
+        // are really needed, but since ??T doesn't make sense this check
+        // will almost never be true.
+        ancestor.type === "NullableTypeAnnotation"
       );
+    }
 
     case "StringLiteral":
     case "NumericLiteral":
@@ -522,6 +556,9 @@ function needsParens(path, options) {
 
     case "ClassExpression":
       return parent.type === "ExportDefaultDeclaration";
+
+    case "OptionalMemberExpression":
+      return parent.type === "MemberExpression";
   }
 
   return false;

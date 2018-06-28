@@ -75,7 +75,7 @@ function getSupportInfo(version, opts) {
   const usePostCssParser = semver.lt(version, "1.7.1");
 
   const languages = plugins
-    .reduce((all, plugin) => all.concat(plugin.languages), [])
+    .reduce((all, plugin) => all.concat(plugin.languages || []), [])
     .filter(
       language =>
         language.since
@@ -95,7 +95,10 @@ function getSupportInfo(version, opts) {
         });
       }
 
-      if (usePostCssParser && language.group === "CSS") {
+      if (
+        usePostCssParser &&
+        (language.name === "CSS" || language.group === "CSS")
+      ) {
         return Object.assign({}, language, {
           parsers: ["postcss"]
         });
