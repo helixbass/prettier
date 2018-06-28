@@ -500,6 +500,7 @@ function printDocToString(doc, options) {
           }
 
           break;
+        }
         case "if-visible-group-broke": {
           const { count } = doc;
           // dump({ doc });
