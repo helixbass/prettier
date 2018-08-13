@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`directives-and-comments.yml 1`] = `
+exports[`directives-and-comments.yml - yaml-verify 1`] = `
 # 123
 %YAML 1.2
 # 456
@@ -16,5 +16,42 @@ test
 # 789
 test
 # 000
+
+`;
+
+exports[`separator.yml - yaml-verify 1`] = `
+a
+---
+b
+...
+c
+... #
+d
+...
+---
+e
+...
+#
+---
+f
+--- #
+g
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+a
+---
+b
+---
+c
+... #
+d
+---
+e
+...
+#
+---
+f
+---
+#
+g
 
 `;

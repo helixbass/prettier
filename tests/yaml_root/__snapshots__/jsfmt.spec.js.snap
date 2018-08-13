@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`documents.yml 1`] = `
+exports[`documents.yml - yaml-verify 1`] = `
 ---
 123
 ...
@@ -8,12 +8,12 @@ exports[`documents.yml 1`] = `
 456
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 123
-...
+---
 456
 
 `;
 
-exports[`documents-with-directive.yml 1`] = `
+exports[`documents-with-directive.yml - yaml-verify 1`] = `
 ---
 123
 ...
@@ -29,12 +29,12 @@ exports[`documents-with-directive.yml 1`] = `
 
 `;
 
-exports[`empty.yml 1`] = `
+exports[`empty.yml - yaml-verify 1`] = `
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `;
 
-exports[`example.yml 1`] = `
+exports[`example.yml - yaml-verify 1`] = `
 ---
 # Collection Types #############################################################
 ################################################################################
@@ -262,7 +262,7 @@ omap:
     - aardvark: African pig-like ant eater. Ugly.
     - anteater: South-American ant eater. Two species.
     - anaconda: South-American constrictor snake. Scaly.
-  # Etc.
+    # Etc.
   # Flow style
   Numbers: !!omap [one: 1, two: 2, three: 3]
 
@@ -382,7 +382,7 @@ merge:
 null:
   # This mapping has four keys,
   # one has a value.
-  ? empty
+  empty:
   canonical: ~
   english: null
   ~: null key

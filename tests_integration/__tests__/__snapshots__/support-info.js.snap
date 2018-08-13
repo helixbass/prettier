@@ -5,7 +5,7 @@ exports[`API getSupportInfo() with version 0.0.0 -> 1.0.0 1`] = `
 - First value
 + Second value
 
-@@ -12,19 +12,35 @@
+@@ -16,19 +16,35 @@
     \\"options\\": Object {
       \\"bracketSpacing\\": Object {
         \\"default\\": true,
@@ -41,7 +41,7 @@ exports[`API getSupportInfo() with version 0.0.0 -> 1.0.0 1`] = `
         \\"type\\": \\"boolean\\",
       },
       \\"tabWidth\\": Object {
-@@ -39,17 +55,15 @@
+@@ -43,17 +59,15 @@
       \\"trailingComma\\": Object {
         \\"choices\\": Array [
           \\"none\\",
@@ -66,6 +66,10 @@ exports[`API getSupportInfo() with version 0.0.0 -> 1.0.0 1`] = `
 exports[`API getSupportInfo() with version 0.0.0 1`] = `
 Object {
   "languages": Object {
+    "Flow": Array [
+      "babylon",
+      "flow",
+    ],
     "JSX": Array [
       "babylon",
       "flow",
@@ -126,15 +130,18 @@ exports[`API getSupportInfo() with version 1.0.0 -> 1.4.0 1`] = `
 - First value
 + Second value
 
-@@ -1,29 +1,59 @@
+@@ -1,7 +1,10 @@
   Object {
     \\"languages\\": Object {
 +     \\"CSS\\": Array [
 +       \\"postcss\\",
 +     ],
-      \\"JSX\\": Array [
+      \\"Flow\\": Array [
         \\"babylon\\",
         \\"flow\\",
+      ],
+      \\"JSX\\": Array [
+@@ -10,24 +13,51 @@
       ],
       \\"JavaScript\\": Array [
         \\"babylon\\",
@@ -186,7 +193,7 @@ exports[`API getSupportInfo() with version 1.0.0 -> 1.4.0 1`] = `
         \\"type\\": \\"choice\\",
       },
       \\"printWidth\\": Object {
-@@ -33,10 +63,28 @@
+@@ -37,10 +67,28 @@
           \\"start\\": 0,
           \\"step\\": 1,
         },
@@ -222,11 +229,11 @@ exports[`API getSupportInfo() with version 1.4.0 -> 1.5.0 1`] = `
 - First value
 + Second value
 
-@@ -1,10 +1,16 @@
-  Object {
-    \\"languages\\": Object {
-      \\"CSS\\": Array [
-        \\"postcss\\",
+@@ -5,10 +5,19 @@
+      ],
+      \\"Flow\\": Array [
+        \\"babylon\\",
+        \\"flow\\",
       ],
 +     \\"GraphQL\\": Array [
 +       \\"graphql\\",
@@ -234,12 +241,15 @@ exports[`API getSupportInfo() with version 1.4.0 -> 1.5.0 1`] = `
 +     \\"JSON\\": Array [
 +       \\"json\\",
 +     ],
++     \\"JSON with Comments\\": Array [
++       \\"json\\",
++     ],
       \\"JSX\\": Array [
         \\"babylon\\",
         \\"flow\\",
       ],
       \\"JavaScript\\": Array [
-@@ -50,10 +56,12 @@
+@@ -54,10 +63,12 @@
         \\"choices\\": Array [
           \\"flow\\",
           \\"babylon\\",
@@ -266,11 +276,11 @@ exports[`API getSupportInfo() with version 1.5.0 -> 1.7.1 1`] = `
 -       \\"postcss\\",
 +       \\"css\\",
       ],
-      \\"GraphQL\\": Array [
-        \\"graphql\\",
+      \\"Flow\\": Array [
+        \\"babylon\\",
+        \\"flow\\",
       ],
-      \\"JSON\\": Array [
-@@ -16,17 +16,17 @@
+@@ -23,17 +23,17 @@
       \\"JavaScript\\": Array [
         \\"babylon\\",
         \\"flow\\",
@@ -291,7 +301,7 @@ exports[`API getSupportInfo() with version 1.5.0 -> 1.7.1 1`] = `
         \\"typescript\\",
       ],
     },
-@@ -55,11 +55,13 @@
+@@ -62,11 +62,13 @@
       \\"parser\\": Object {
         \\"choices\\": Array [
           \\"flow\\",
@@ -306,7 +316,7 @@ exports[`API getSupportInfo() with version 1.5.0 -> 1.7.1 1`] = `
         ],
         \\"default\\": \\"babylon\\",
         \\"type\\": \\"choice\\",
-@@ -89,10 +91,14 @@
+@@ -96,10 +98,14 @@
           \\"start\\": 0,
           \\"step\\": 1,
         },
@@ -328,7 +338,7 @@ exports[`API getSupportInfo() with version 1.7.1 -> 1.8.0 1`] = `
 - First value
 + Second value
 
-@@ -18,10 +18,13 @@
+@@ -25,10 +25,13 @@
         \\"flow\\",
       ],
       \\"Less\\": Array [
@@ -342,7 +352,7 @@ exports[`API getSupportInfo() with version 1.7.1 -> 1.8.0 1`] = `
       ],
       \\"SCSS\\": Array [
         \\"scss\\",
-@@ -46,10 +49,14 @@
+@@ -53,10 +56,14 @@
       },
       \\"filepath\\": Object {
         \\"default\\": undefined,
@@ -357,7 +367,7 @@ exports[`API getSupportInfo() with version 1.7.1 -> 1.8.0 1`] = `
         \\"type\\": \\"boolean\\",
       },
       \\"parser\\": Object {
-@@ -60,10 +67,11 @@
+@@ -67,10 +74,11 @@
           \\"css\\",
           \\"less\\",
           \\"scss\\",
@@ -376,7 +386,7 @@ exports[`API getSupportInfo() with version 1.8.0 -> 1.8.2 1`] = `
 - First value
 + Second value
 
-@@ -81,10 +81,18 @@
+@@ -88,10 +88,18 @@
           \\"start\\": 0,
           \\"step\\": 1,
         },
@@ -402,10 +412,10 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
 - First value
 + Second value
 
-@@ -7,10 +7,16 @@
-        \\"graphql\\",
+@@ -14,10 +14,16 @@
+        \\"json\\",
       ],
-      \\"JSON\\": Array [
+      \\"JSON with Comments\\": Array [
         \\"json\\",
       ],
 +     \\"JSON.stringify\\": Array [
@@ -419,7 +429,21 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
         \\"flow\\",
       ],
       \\"JavaScript\\": Array [
-@@ -30,12 +36,23 @@
+@@ -25,10 +31,13 @@
+        \\"flow\\",
+      ],
+      \\"Less\\": Array [
+        \\"less\\",
+      ],
++     \\"MDX\\": Array [
++       \\"mdx\\",
++     ],
+      \\"Markdown\\": Array [
+        \\"markdown\\",
+      ],
+      \\"PostCSS\\": Array [
+        \\"css\\",
+@@ -37,12 +46,26 @@
         \\"scss\\",
       ],
       \\"TypeScript\\": Array [
@@ -427,6 +451,9 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
       ],
 +     \\"Vue\\": Array [
 +       \\"vue\\",
++     ],
++     \\"YAML\\": Array [
++       \\"yaml\\",
 +     ],
     },
     \\"options\\": Object {
@@ -443,7 +470,7 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
         \\"type\\": \\"boolean\\",
       },
       \\"cursorOffset\\": Object {
-@@ -66,16 +83,27 @@
+@@ -73,16 +96,29 @@
           \\"typescript\\",
           \\"css\\",
           \\"less\\",
@@ -453,7 +480,9 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
 +         \\"json-stringify\\",
           \\"graphql\\",
           \\"markdown\\",
++         \\"mdx\\",
 +         \\"vue\\",
++         \\"yaml\\",
         ],
 -       \\"default\\": \\"babylon\\",
 +       \\"default\\": undefined,
@@ -472,7 +501,7 @@ exports[`API getSupportInfo() with version 1.8.2 -> undefined 1`] = `
         \\"range\\": Object {
           \\"end\\": Infinity,
           \\"start\\": 0,
-@@ -83,14 +111,15 @@
+@@ -90,14 +126,15 @@
         },
         \\"type\\": \\"int\\",
       },
@@ -530,6 +559,23 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"interpreters\\": [\\"node\\"],
       \\"linguistLanguageId\\": 183,
       \\"name\\": \\"JavaScript\\",
+      \\"parsers\\": [\\"babylon\\", \\"flow\\"],
+      \\"since\\": \\"0.0.0\\",
+      \\"tmScope\\": \\"source.js\\",
+      \\"type\\": \\"programming\\",
+      \\"vscodeLanguageIds\\": [\\"javascript\\"]
+    },
+    {
+      \\"aceMode\\": \\"javascript\\",
+      \\"aliases\\": [],
+      \\"codemirrorMimeType\\": \\"text/javascript\\",
+      \\"codemirrorMode\\": \\"javascript\\",
+      \\"color\\": \\"#f1e05a\\",
+      \\"extensions\\": [\\".js.flow\\"],
+      \\"filenames\\": [],
+      \\"interpreters\\": [\\"node\\"],
+      \\"linguistLanguageId\\": 183,
+      \\"name\\": \\"Flow\\",
       \\"parsers\\": [\\"babylon\\", \\"flow\\"],
       \\"since\\": \\"0.0.0\\",
       \\"tmScope\\": \\"source.js\\",
@@ -601,13 +647,10 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"filenames\\": [
         \\".arcconfig\\",
         \\".htmlhintrc\\",
-        \\".jscsrc\\",
-        \\".jshintrc\\",
         \\".tern-config\\",
         \\".tern-project\\",
         \\"composer.lock\\",
         \\"mcmod.info\\",
-        \\".eslintrc\\",
         \\".prettierrc\\"
       ],
       \\"group\\": \\"JavaScript\\",
@@ -618,14 +661,51 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"since\\": \\"1.5.0\\",
       \\"tmScope\\": \\"source.json\\",
       \\"type\\": \\"data\\",
-      \\"vscodeLanguageIds\\": [\\"json\\", \\"jsonc\\"]
+      \\"vscodeLanguageIds\\": [\\"json\\"]
+    },
+    {
+      \\"aceMode\\": \\"javascript\\",
+      \\"aliases\\": [\\"jsonc\\"],
+      \\"codemirrorMimeType\\": \\"text/javascript\\",
+      \\"codemirrorMode\\": \\"javascript\\",
+      \\"extensions\\": [
+        \\".sublime-build\\",
+        \\".sublime-commands\\",
+        \\".sublime-completions\\",
+        \\".sublime-keymap\\",
+        \\".sublime-macro\\",
+        \\".sublime-menu\\",
+        \\".sublime-mousemap\\",
+        \\".sublime-project\\",
+        \\".sublime-settings\\",
+        \\".sublime-theme\\",
+        \\".sublime-workspace\\",
+        \\".sublime_metrics\\",
+        \\".sublime_session\\"
+      ],
+      \\"filenames\\": [
+        \\".babelrc\\",
+        \\".eslintrc.json\\",
+        \\".jscsrc\\",
+        \\".jshintrc\\",
+        \\".jslintrc\\",
+        \\"tsconfig.json\\",
+        \\".eslintrc\\"
+      ],
+      \\"group\\": \\"JSON\\",
+      \\"linguistLanguageId\\": 423,
+      \\"name\\": \\"JSON with Comments\\",
+      \\"parsers\\": [\\"json\\"],
+      \\"since\\": \\"1.5.0\\",
+      \\"tmScope\\": \\"source.js\\",
+      \\"type\\": \\"data\\",
+      \\"vscodeLanguageIds\\": [\\"jsonc\\"]
     },
     {
       \\"aceMode\\": \\"javascript\\",
       \\"codemirrorMimeType\\": \\"application/json\\",
       \\"codemirrorMode\\": \\"javascript\\",
       \\"extensions\\": [\\".json5\\"],
-      \\"filenames\\": [\\".babelrc\\", \\".jslintrc\\"],
       \\"linguistLanguageId\\": 175,
       \\"name\\": \\"JSON5\\",
       \\"parsers\\": [\\"json5\\"],
@@ -726,6 +806,13 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"wrap\\": true
     },
     {
+      \\"extensions\\": [\\".mdx\\"],
+      \\"name\\": \\"MDX\\",
+      \\"parsers\\": [\\"mdx\\"],
+      \\"since\\": \\"1.15.0\\",
+      \\"vscodeLanguageIds\\": [\\"mdx\\"]
+    },
+    {
       \\"aceMode\\": \\"html\\",
       \\"color\\": \\"#2c3e50\\",
       \\"extensions\\": [\\".vue\\"],
@@ -736,6 +823,31 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"tmScope\\": \\"text.html.vue\\",
       \\"type\\": \\"markup\\",
       \\"vscodeLanguageIds\\": [\\"vue\\"]
+    },
+    {
+      \\"aceMode\\": \\"yaml\\",
+      \\"aliases\\": [\\"yml\\"],
+      \\"codemirrorMimeType\\": \\"text/x-yaml\\",
+      \\"codemirrorMode\\": \\"yaml\\",
+      \\"extensions\\": [
+        \\".yml\\",
+        \\".mir\\",
+        \\".reek\\",
+        \\".rviz\\",
+        \\".sublime-syntax\\",
+        \\".syntax\\",
+        \\".yaml\\",
+        \\".yaml-tmlanguage\\",
+        \\".yml.mysql\\"
+      ],
+      \\"filenames\\": [\\".clang-format\\", \\".clang-tidy\\", \\".gemrc\\", \\"glide.lock\\"],
+      \\"linguistLanguageId\\": 407,
+      \\"name\\": \\"YAML\\",
+      \\"parsers\\": [\\"yaml\\"],
+      \\"since\\": \\"1.14.0\\",
+      \\"tmScope\\": \\"source.yaml\\",
+      \\"type\\": \\"data\\",
+      \\"vscodeLanguageIds\\": [\\"yaml\\"]
     }
   ],
   \\"options\\": [
@@ -752,8 +864,7 @@ exports[`CLI --support-info (stdout) 1`] = `
         }
       ],
       \\"default\\": \\"avoid\\",
-      \\"description\\":
-        \\"Include parentheses around a sole arrow function parameter.\\",
+      \\"description\\": \\"Include parentheses around a sole arrow function parameter.\\",
       \\"name\\": \\"arrowParens\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.9.0\\",
@@ -772,8 +883,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     {
       \\"category\\": \\"Special\\",
       \\"default\\": -1,
-      \\"description\\":
-        \\"Print (to stderr) where a cursor at the given position would move to after formatting.\\\\nThis option cannot be used with --range-start and --range-end.\\",
+      \\"description\\": \\"Print (to stderr) where a cursor at the given position would move to after formatting.\\\\nThis option cannot be used with --range-start and --range-end.\\",
       \\"name\\": \\"cursorOffset\\",
       \\"pluginDefaults\\": {},
       \\"range\\": { \\"end\\": null, \\"start\\": -1, \\"step\\": 1 },
@@ -782,8 +892,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     },
     {
       \\"category\\": \\"Special\\",
-      \\"description\\":
-        \\"Specify the input filepath. This will be used to do parser inference.\\",
+      \\"description\\": \\"Specify the input filepath. This will be used to do parser inference.\\",
       \\"name\\": \\"filepath\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.4.0\\",
@@ -792,8 +901,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     {
       \\"category\\": \\"Special\\",
       \\"default\\": false,
-      \\"description\\":
-        \\"Insert @format pragma into file's first docblock comment.\\",
+      \\"description\\": \\"Insert @format pragma into file's first docblock comment.\\",
       \\"name\\": \\"insertPragma\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.8.0\\",
@@ -830,7 +938,9 @@ exports[`CLI --support-info (stdout) 1`] = `
         },
         { \\"description\\": \\"GraphQL\\", \\"since\\": \\"1.5.0\\", \\"value\\": \\"graphql\\" },
         { \\"description\\": \\"Markdown\\", \\"since\\": \\"1.8.0\\", \\"value\\": \\"markdown\\" },
-        { \\"description\\": \\"Vue\\", \\"since\\": \\"1.10.0\\", \\"value\\": \\"vue\\" }
+        { \\"description\\": \\"MDX\\", \\"since\\": \\"1.15.0\\", \\"value\\": \\"mdx\\" },
+        { \\"description\\": \\"Vue\\", \\"since\\": \\"1.10.0\\", \\"value\\": \\"vue\\" },
+        { \\"description\\": \\"YAML\\", \\"since\\": \\"1.14.0\\", \\"value\\": \\"yaml\\" }
       ],
       \\"description\\": \\"Which parser to use.\\",
       \\"name\\": \\"parser\\",
@@ -842,8 +952,7 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"array\\": true,
       \\"category\\": \\"Global\\",
       \\"default\\": [],
-      \\"description\\":
-        \\"Custom directory that contains prettier plugins in node_modules subdirectory.\\\\nOverrides default behavior when plugins are searched relatively to the location of Prettier.\\\\nMultiple values are accepted.\\",
+      \\"description\\": \\"Custom directory that contains prettier plugins in node_modules subdirectory.\\\\nOverrides default behavior when plugins are searched relatively to the location of Prettier.\\\\nMultiple values are accepted.\\",
       \\"name\\": \\"pluginSearchDirs\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.13.0\\",
@@ -853,8 +962,7 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"array\\": true,
       \\"category\\": \\"Global\\",
       \\"default\\": [],
-      \\"description\\":
-        \\"Add a plugin. Multiple plugins can be passed as separate \`--plugin\`s.\\",
+      \\"description\\": \\"Add a plugin. Multiple plugins can be passed as separate \`--plugin\`s.\\",
       \\"name\\": \\"plugins\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.10.0\\",
@@ -871,7 +979,7 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"type\\": \\"int\\"
     },
     {
-      \\"category\\": \\"Markdown\\",
+      \\"category\\": \\"Common\\",
       \\"choices\\": [
         {
           \\"description\\": \\"Wrap prose if it exceeds the print width.\\",
@@ -890,7 +998,7 @@ exports[`CLI --support-info (stdout) 1`] = `
         }
       ],
       \\"default\\": \\"preserve\\",
-      \\"description\\": \\"How to wrap prose. (markdown)\\",
+      \\"description\\": \\"How to wrap prose.\\",
       \\"name\\": \\"proseWrap\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.8.2\\",
@@ -899,8 +1007,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     {
       \\"category\\": \\"Special\\",
       \\"default\\": null,
-      \\"description\\":
-        \\"Format code ending at a given character offset (exclusive).\\\\nThe range will extend forwards to the end of the selected statement.\\\\nThis option cannot be used with --cursor-offset.\\",
+      \\"description\\": \\"Format code ending at a given character offset (exclusive).\\\\nThe range will extend forwards to the end of the selected statement.\\\\nThis option cannot be used with --cursor-offset.\\",
       \\"name\\": \\"rangeEnd\\",
       \\"pluginDefaults\\": {},
       \\"range\\": { \\"end\\": null, \\"start\\": 0, \\"step\\": 1 },
@@ -910,8 +1017,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     {
       \\"category\\": \\"Special\\",
       \\"default\\": 0,
-      \\"description\\":
-        \\"Format code starting at a given character offset.\\\\nThe range will extend backwards to the start of the first line containing the selected statement.\\\\nThis option cannot be used with --cursor-offset.\\",
+      \\"description\\": \\"Format code starting at a given character offset.\\\\nThe range will extend backwards to the start of the first line containing the selected statement.\\\\nThis option cannot be used with --cursor-offset.\\",
       \\"name\\": \\"rangeStart\\",
       \\"pluginDefaults\\": {},
       \\"range\\": { \\"end\\": null, \\"start\\": 0, \\"step\\": 1 },
@@ -921,8 +1027,7 @@ exports[`CLI --support-info (stdout) 1`] = `
     {
       \\"category\\": \\"Special\\",
       \\"default\\": false,
-      \\"description\\":
-        \\"Require either '@prettier' or '@format' to be present in the file's first docblock comment\\\\nin order for it to be formatted.\\",
+      \\"description\\": \\"Require either '@prettier' or '@format' to be present in the file's first docblock comment\\\\nin order for it to be formatted.\\",
       \\"name\\": \\"requirePragma\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.7.0\\",
@@ -933,8 +1038,7 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"default\\": true,
       \\"description\\": \\"Print semicolons.\\",
       \\"name\\": \\"semi\\",
-      \\"oppositeDescription\\":
-        \\"Do not print semicolons, except at the beginning of lines which may need them.\\",
+      \\"oppositeDescription\\": \\"Do not print semicolons, except at the beginning of lines which may need them.\\",
       \\"pluginDefaults\\": {},
       \\"since\\": \\"1.0.0\\",
       \\"type\\": \\"boolean\\"
@@ -962,13 +1066,11 @@ exports[`CLI --support-info (stdout) 1`] = `
       \\"choices\\": [
         { \\"description\\": \\"No trailing commas.\\", \\"value\\": \\"none\\" },
         {
-          \\"description\\":
-            \\"Trailing commas where valid in ES5 (objects, arrays, etc.)\\",
+          \\"description\\": \\"Trailing commas where valid in ES5 (objects, arrays, etc.)\\",
           \\"value\\": \\"es5\\"
         },
         {
-          \\"description\\":
-            \\"Trailing commas wherever possible (including function arguments).\\",
+          \\"description\\": \\"Trailing commas wherever possible (including function arguments).\\",
           \\"value\\": \\"all\\"
         }
       ],

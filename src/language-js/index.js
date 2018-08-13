@@ -11,6 +11,20 @@ const languages = [
     parsers: ["babylon", "flow"],
     vscodeLanguageIds: ["javascript"]
   }),
+  Object.assign(
+    languageExtend({}, require("linguist-languages/data/javascript"), {
+      name: "Flow",
+      since: "0.0.0",
+      parsers: ["babylon", "flow"],
+      vscodeLanguageIds: ["javascript"]
+    }),
+    // overwrite
+    {
+      aliases: [],
+      filenames: [],
+      extensions: [".js.flow"]
+    }
+  ),
   languageExtend({}, require("linguist-languages/data/jsx"), {
     since: "0.0.0",
     parsers: ["babylon", "flow"],
@@ -37,8 +51,14 @@ const languages = [
   languageExtend({}, require("linguist-languages/data/json"), {
     since: "1.5.0",
     parsers: ["json"],
-    filenames: [".eslintrc", ".prettierrc"],
-    vscodeLanguageIds: ["json", "jsonc"]
+    filenames: [".prettierrc"],
+    vscodeLanguageIds: ["json"]
+  }),
+  languageExtend({}, require("linguist-languages/data/json-with-comments"), {
+    since: "1.5.0",
+    parsers: ["json"],
+    filenames: [".eslintrc"],
+    vscodeLanguageIds: ["jsonc"]
   }),
   languageExtend({}, require("linguist-languages/data/json5"), {
     since: "1.13.0",

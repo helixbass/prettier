@@ -10,8 +10,10 @@ function parse(text, parsers, opts) {
 
   const babylonOptions = {
     sourceType: "module",
+    allowAwaitOutsideFunction: true,
     allowImportExportEverywhere: true,
     allowReturnOutsideFunction: true,
+    allowSuperOutsideMethod: true,
     plugins: [
       "jsx",
       "flow",
@@ -30,7 +32,7 @@ function parse(text, parsers, opts) {
       "optionalCatchBinding",
       "optionalChaining",
       "classPrivateProperties",
-      "pipelineOperator",
+      ["pipelineOperator", { proposal: "minimal" }],
       "nullishCoalescingOperator",
       "bigInt",
       "throwExpressions"
@@ -38,9 +40,7 @@ function parse(text, parsers, opts) {
   };
 
   const parseMethod =
-    opts && (opts.parser === "json" || opts.parser === "json5")
-      ? "parseExpression"
-      : "parse";
+    !opts || opts.parser === "babylon" ? "parse" : "parseExpression";
 
   let ast;
   try {
@@ -157,6 +157,8 @@ module.exports = {
         astFormat: "estree-json"
       },
       locFns
-    )
+    ),
+    /** @internal for mdx to print jsx without semicolon */
+    __js_expression: babylon
   }
 };

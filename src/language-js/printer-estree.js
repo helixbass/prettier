@@ -20,7 +20,8 @@ const {
   getPenultimate,
   startsWithNoLookaheadToken,
   getIndentSize,
-  matchAncestorTypes
+  matchAncestorTypes,
+  isWithinParentArrayProperty
 } = require("../common/util");
 const {
   isNextLineEmpty,
@@ -94,34 +95,18 @@ function genericPrint(path, options, printPath, args) {
     // responsible for printing node.decorators.
     !getParentExportDeclaration(path)
   ) {
-    let separator = hardline;
+    const separator =
+      node.decorators.length === 1 &&
+      isWithinParentArrayProperty(path, "params")
+        ? line
+        : hardline;
+
     path.each(decoratorPath => {
       let decorator = decoratorPath.getValue();
       if (decorator.expression) {
         decorator = decorator.expression;
       } else {
         decorator = decorator.callee;
-      }
-
-      if (
-        node.decorators.length === 1 &&
-        node.type !== "ClassDeclaration" &&
-        node.type !== "MethodDefinition" &&
-        node.type !== "ClassMethod" &&
-        (decorator.type === "Identifier" ||
-          decorator.type === "MemberExpression" ||
-          decorator.type === "OptionalMemberExpression" ||
-          ((decorator.type === "CallExpression" ||
-            decorator.type === "OptionalCallExpression") &&
-            (decorator.arguments.length === 0 ||
-              (decorator.arguments.length === 1 &&
-                (isStringLiteral(decorator.arguments[0]) ||
-                  decorator.arguments[0].type === "Identifier" ||
-                  decorator.arguments[0].type === "MemberExpression" ||
-                  decorator.arguments[0].type ===
-                    "OptionalMemberExpression")))))
-      ) {
-        separator = line;
       }
 
       decorators.push(printPath(decoratorPath), separator);
@@ -626,8 +611,6 @@ function printPathNoParens(path, options, print, args) {
     case "SpreadElement":
     case "SpreadElementPattern":
     case "RestProperty":
-    case "ExperimentalRestProperty":
-    case "ExperimentalSpreadProperty":
     case "SpreadProperty":
     case "SpreadPropertyPattern":
     case "RestElement":
@@ -1103,6 +1086,18 @@ function printPathNoParens(path, options, print, args) {
       parts.push(path.call(print, "body"));
 
       return concat(parts);
+
+    case "ObjectTypeInternalSlot":
+      return concat([
+        n.static ? "static " : "",
+        "[[",
+        path.call(print, "id"),
+        "]]",
+        printOptionalToken(path),
+        n.method ? "" : ": ",
+        path.call(print, "value")
+      ]);
+
     case "ObjectExpression":
     case "ObjectPattern":
     case "ObjectTypeAnnotation":
@@ -1157,7 +1152,7 @@ function printPathNoParens(path, options, print, args) {
       }
 
       if (isTypeAnnotation) {
-        fields.push("indexers", "callProperties");
+        fields.push("indexers", "callProperties", "internalSlots");
       }
       fields.push(propertiesField);
 
@@ -1198,7 +1193,6 @@ function printPathNoParens(path, options, print, args) {
         lastElem &&
         (lastElem.type === "RestProperty" ||
           lastElem.type === "RestElement" ||
-          lastElem.type === "ExperimentalRestProperty" ||
           hasNodeIgnoreComment(lastElem))
       );
 
@@ -2086,6 +2080,7 @@ function printPathNoParens(path, options, print, args) {
       } else {
         parts.push(printPropertyKey(path, options, print));
       }
+      parts.push(printOptionalToken(path));
       parts.push(printTypeAnnotation(path, options, print));
       if (n.value) {
         parts.push(
@@ -2431,7 +2426,8 @@ function printPathNoParens(path, options, print, args) {
       let isArrowFunctionTypeAnnotation =
         n.type === "TSFunctionType" ||
         !(
-          (parent.type === "ObjectTypeProperty" &&
+          ((parent.type === "ObjectTypeProperty" ||
+            parent.type === "ObjectTypeInternalSlot") &&
             !getFlowVariance(parent) &&
             !parent.optional &&
             options.locStart(parent) === options.locStart(n)) ||
@@ -2489,6 +2485,10 @@ function printPathNoParens(path, options, print, args) {
 
       return group(concat(parts));
     }
+    case "TSRestType":
+      return concat(["...", path.call(print, "typeAnnotation")]);
+    case "TSOptionalType":
+      return concat([path.call(print, "typeAnnotation"), "?"]);
     case "FunctionTypeParam":
       return concat([
         path.call(print, "name"),
@@ -2936,11 +2936,11 @@ function printPathNoParens(path, options, print, args) {
       return concat([path.call(print, "expression"), "!"]);
     case "TSThisType":
       return "this";
-    case "TSLastTypeNode": // TSImportType
+    case "TSImportType":
       return concat([
         !n.isTypeOf ? "" : "typeof ",
         "import(",
-        path.call(print, "argument"),
+        path.call(print, "parameter"),
         ")",
         !n.qualifier ? "" : concat([".", path.call(print, "qualifier")]),
         printTypeParameters(path, options, print, "typeParameters")
@@ -5253,10 +5253,13 @@ function printAssignmentRight(leftNode, rightNode, printedRight, options) {
     ((leftNode.type === "Identifier" ||
       isStringLiteral(leftNode) ||
       leftNode.type === "MemberExpression") &&
-      (isStringLiteral(rightNode) || isMemberExpressionChain(rightNode)));
+      (isStringLiteral(rightNode) || isMemberExpressionChain(rightNode)) &&
+      // do not put values on a separate line from the key in json
+      options.parser !== "json" &&
+      options.parser !== "json5");
 
   if (canBreak) {
-    return indent(concat([line, printedRight]));
+    return group(indent(concat([line, printedRight])));
   }
 
   return concat([" ", printedRight]);
@@ -5356,7 +5359,7 @@ function hasNakedLeftSide(node) {
     node.type === "OptionalMemberExpression" ||
     node.type === "SequenceExpression" ||
     node.type === "TaggedTemplateExpression" ||
-    (node.type === "BindExpression" && !node.object) ||
+    node.type === "BindExpression" ||
     (node.type === "UpdateExpression" && !node.prefix)
   );
 }
@@ -5392,11 +5395,11 @@ function getLeftSidePathName(path, node) {
   if (node.test) {
     return ["test"];
   }
-  if (node.callee) {
-    return ["callee"];
-  }
   if (node.object) {
     return ["object"];
+  }
+  if (node.callee) {
+    return ["callee"];
   }
   if (node.tag) {
     return ["tag"];
@@ -5427,7 +5430,7 @@ function exprNeedsASIProtection(path, options) {
     node.type === "TemplateLiteral" ||
     node.type === "TemplateElement" ||
     isJSXNode(node) ||
-    node.type === "BindExpression" ||
+    (node.type === "BindExpression" && !node.object) ||
     node.type === "RegExpLiteral" ||
     (node.type === "Literal" && node.pattern) ||
     (node.type === "Literal" && node.regex);
@@ -5563,7 +5566,8 @@ function isMemberExpressionChain(node) {
 // type T = { method(): void };
 function isObjectTypePropertyAFunction(node, options) {
   return (
-    node.type === "ObjectTypeProperty" &&
+    (node.type === "ObjectTypeProperty" ||
+      node.type === "ObjectTypeInternalSlot") &&
     node.value.type === "FunctionTypeAnnotation" &&
     !node.static &&
     !isFunctionNotation(node, options)
@@ -5810,7 +5814,9 @@ function isAngularTestWrapper(node) {
     (node.type === "CallExpression" ||
       node.type === "OptionalCallExpression") &&
     node.callee.type === "Identifier" &&
-    (node.callee.name === "async" || node.callee.name === "inject")
+    (node.callee.name === "async" ||
+      node.callee.name === "inject" ||
+      node.callee.name === "fakeAsync")
   );
 }
 

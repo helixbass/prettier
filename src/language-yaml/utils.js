@@ -6,7 +6,8 @@ function getLast(array) {
 
 function getAncestorCount(path, filter) {
   let counter = 0;
-  for (let i = 0; i < path.stack.length - 1; i++) {
+  const pathStackLength = path.stack.length - 1;
+  for (let i = 0; i < pathStackLength; i++) {
     const value = path.stack[i];
     if (isNode(value) && filter(value)) {
       counter++;
@@ -51,8 +52,8 @@ function createNull() {
 
 function isNextLineEmpty(node, text) {
   let newlineCount = 0;
-
-  for (let i = node.position.end.offset - 1; i < text.length; i++) {
+  const textLength = text.length;
+  for (let i = node.position.end.offset - 1; i < textLength; i++) {
     const char = text[i];
 
     if (char === "\n") {
@@ -81,8 +82,9 @@ function isLastDescendantNode(path) {
     case "nonSpecificTag":
       return false;
   }
+  const pathStackLength = path.stack.length;
 
-  for (let i = 1; i < path.stack.length; i++) {
+  for (let i = 1; i < pathStackLength; i++) {
     const item = path.stack[i];
     const parentItem = path.stack[i - 1];
 
@@ -137,33 +139,6 @@ function hasExplicitDocumentEndMarker(document, text) {
   );
 }
 
-function restoreBlockFoldedValue(value) {
-  const lines = value.split("\n");
-
-  let hasChecked = false;
-  let isIndented = false;
-  for (let i = 0; i < lines.length; i++) {
-    const lineContent = lines[i];
-
-    if (!lineContent) {
-      continue;
-    }
-
-    if (/^\s/.test(lineContent[0])) {
-      isIndented = true;
-    } else {
-      if (!isIndented && i !== 0 && hasChecked) {
-        lines[i] = "\n" + lineContent;
-      }
-      isIndented = false;
-    }
-
-    hasChecked = true;
-  }
-
-  return lines.join("\n");
-}
-
 function isBlockValue(node) {
   switch (node.type) {
     case "blockFolded":
@@ -186,6 +161,178 @@ function hasTrailingComments(node) {
   return "trailingComments" in node && node.trailingComments.length !== 0;
 }
 
+function hasEndComments(node) {
+  return "endComments" in node && node.endComments.length !== 0;
+}
+
+/**
+ * " a   b c   d e   f " -> [" a   b", "c   d", "e   f "]
+ */
+function splitWithSingleSpace(text) {
+  const parts = [];
+
+  let lastPart = undefined;
+  for (const part of text.split(/( +)/g)) {
+    if (part !== " ") {
+      if (lastPart === " ") {
+        parts.push(part);
+      } else {
+        parts.push((parts.pop() || "") + part);
+      }
+    } else if (lastPart === undefined) {
+      parts.unshift("");
+    }
+
+    lastPart = part;
+  }
+
+  if (lastPart === " ") {
+    parts.push((parts.pop() || "") + " ");
+  }
+
+  if (parts[0] === "") {
+    parts.shift();
+    parts.unshift(" " + (parts.shift() || ""));
+  }
+
+  return parts;
+}
+
+function getFlowScalarLineContents(nodeType, content, options) {
+  const rawLineContents = content
+    .split("\n")
+    .map(
+      (lineContent, index, lineContents) =>
+        index === 0 && index === lineContents.length - 1
+          ? lineContent
+          : index !== 0 && index !== lineContents.length - 1
+            ? lineContent.trim()
+            : index === 0
+              ? lineContent.trimRight()
+              : lineContent.trimLeft()
+    );
+
+  if (options.proseWrap === "preserve") {
+    return rawLineContents.map(
+      lineContent => (lineContent.length === 0 ? [] : [lineContent])
+    );
+  }
+
+  return rawLineContents
+    .map(
+      lineContent =>
+        lineContent.length === 0 ? [] : splitWithSingleSpace(lineContent)
+    )
+    .reduce(
+      (reduced, lineContentWords, index) =>
+        index !== 0 &&
+        rawLineContents[index - 1].length !== 0 &&
+        lineContentWords.length !== 0 &&
+        !// trailing backslash in quoteDouble should be preserved
+        (nodeType === "quoteDouble" && getLast(getLast(reduced)).endsWith("\\"))
+          ? reduced.concat([reduced.pop().concat(lineContentWords)])
+          : reduced.concat([lineContentWords]),
+      []
+    )
+    .map(
+      lineContentWords =>
+        options.proseWrap === "never"
+          ? [lineContentWords.join(" ")]
+          : lineContentWords
+    );
+}
+
+function getBlockValueLineContents(
+  node,
+  { parentIndent, isLastDescendant, options }
+) {
+  const content =
+    node.position.start.line === node.position.end.line
+      ? ""
+      : options.originalText
+          .slice(node.position.start.offset, node.position.end.offset)
+          // exclude open line `>` or `|`
+          .match(/^[^\n]*?\n([\s\S]*)$/)[1];
+
+  const leadingSpaceCount =
+    node.indent === null
+      ? (match => (match ? match[1].length : Infinity))(
+          content.match(/^( *)\S/m)
+        )
+      : node.indent - 1 + parentIndent;
+
+  const rawLineContents = content
+    .split("\n")
+    .map(lineContent => lineContent.slice(leadingSpaceCount));
+
+  if (options.proseWrap === "preserve" || node.type === "blockLiteral") {
+    return removeUnnecessaryTrailingNewlines(
+      rawLineContents.map(
+        lineContent => (lineContent.length === 0 ? [] : [lineContent])
+      )
+    );
+  }
+
+  return removeUnnecessaryTrailingNewlines(
+    rawLineContents
+      .map(
+        lineContent =>
+          lineContent.length === 0 ? [] : splitWithSingleSpace(lineContent)
+      )
+      .reduce(
+        (reduced, lineContentWords, index) =>
+          index !== 0 &&
+          rawLineContents[index - 1].length !== 0 &&
+          lineContentWords.length !== 0 &&
+          !/^\s/.test(lineContentWords[0]) &&
+          !/^\s|\s$/.test(getLast(reduced))
+            ? reduced.concat([reduced.pop().concat(lineContentWords)])
+            : reduced.concat([lineContentWords]),
+        []
+      )
+      .map(lineContentWords =>
+        lineContentWords.reduce(
+          (reduced, word) =>
+            // disallow trailing spaces
+            reduced.length !== 0 && /\s$/.test(getLast(reduced))
+              ? reduced.concat(reduced.pop() + " " + word)
+              : reduced.concat(word),
+          []
+        )
+      )
+      .map(
+        lineContentWords =>
+          options.proseWrap === "never"
+            ? [lineContentWords.join(" ")]
+            : lineContentWords
+      )
+  );
+
+  function removeUnnecessaryTrailingNewlines(lineContents) {
+    if (node.chomping === "keep") {
+      return getLast(lineContents).length === 0
+        ? lineContents.slice(0, -1)
+        : lineContents;
+    }
+
+    let trailingNewlineCount = 0;
+    for (let i = lineContents.length - 1; i >= 0; i--) {
+      if (lineContents[i].length === 0) {
+        trailingNewlineCount++;
+      } else {
+        break;
+      }
+    }
+
+    return trailingNewlineCount === 0
+      ? lineContents
+      : trailingNewlineCount >= 2 && !isLastDescendant
+        ? // next empty line
+          lineContents.slice(0, -(trailingNewlineCount - 1))
+        : lineContents.slice(0, -trailingNewlineCount);
+  }
+}
+
 module.exports = {
   getLast,
   getAncestorCount,
@@ -196,11 +343,13 @@ module.exports = {
   createNull,
   isNextLineEmpty,
   isLastDescendantNode,
+  getBlockValueLineContents,
+  getFlowScalarLineContents,
   getLastDescendantNode,
   hasPrettierIgnore,
   hasLeadingComments,
   hasMiddleComments,
   hasTrailingComments,
-  hasExplicitDocumentEndMarker,
-  restoreBlockFoldedValue
+  hasEndComments,
+  hasExplicitDocumentEndMarker
 };

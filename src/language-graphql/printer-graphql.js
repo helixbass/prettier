@@ -144,7 +144,11 @@ function genericPrint(path, options, print) {
           '"""'
         ]);
       }
-      return concat(['"', n.value.replace(/["\\]/g, "\\$&"), '"']);
+      return concat([
+        '"',
+        n.value.replace(/["\\]/g, "\\$&").replace(/\n/g, "\\n"),
+        '"'
+      ]);
     }
     case "IntValue":
     case "FloatValue":
@@ -629,13 +633,11 @@ function canAttachComment(node) {
 
 function printComment(commentPath) {
   const comment = commentPath.getValue();
-
-  switch (comment.kind) {
-    case "Comment":
-      return "#" + comment.value.trimRight();
-    default:
-      throw new Error("Not a comment: " + JSON.stringify(comment));
+  if (comment.kind === "Comment") {
+    return "#" + comment.value.trimRight();
   }
+
+  throw new Error("Not a comment: " + JSON.stringify(comment));
 }
 
 function determineInterfaceSeparator(originalSource) {

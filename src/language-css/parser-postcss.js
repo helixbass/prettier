@@ -480,7 +480,7 @@ function parseNestedCSS(node) {
 
 function parseWithParser(parser, text) {
   const parsed = parseFrontMatter(text);
-  const frontMatter = parsed.frontMatter;
+  const { frontMatter } = parsed;
   text = parsed.content;
 
   let result;
@@ -497,10 +497,7 @@ function parseWithParser(parser, text) {
   result = parseNestedCSS(addTypePrefix(result, "css-"));
 
   if (frontMatter) {
-    result.nodes.unshift({
-      type: "front-matter",
-      value: frontMatter
-    });
+    result.nodes.unshift(frontMatter);
   }
 
   return result;

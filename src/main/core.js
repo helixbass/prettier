@@ -58,7 +58,7 @@ function attachComments(text, ast, opts) {
     comments.attach(astComments, ast, text, opts);
   }
   ast.tokens = [];
-  opts.originalText = text.trimRight();
+  opts.originalText = opts.parser === "yaml" ? text : text.trimRight();
   return astComments;
 }
 
@@ -71,6 +71,8 @@ function coreFormat(text, opts, addAlignmentSize) {
 
   const parsed = parser.parse(text, opts);
   const ast = parsed.ast;
+
+  const originalText = text;
   text = parsed.text;
 
   if (opts.cursorOffset >= 0) {
@@ -82,7 +84,7 @@ function coreFormat(text, opts, addAlignmentSize) {
 
   const astComments = attachComments(text, ast, opts);
   const doc = printAstToDoc(ast, opts, addAlignmentSize);
-  opts.newLine = guessLineEnding(text);
+  opts.newLine = guessLineEnding(originalText);
 
   const result = printDocToString(doc, opts);
 
