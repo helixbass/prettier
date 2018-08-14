@@ -276,6 +276,16 @@ module.exports = {
     return printDocToString(doc, opts);
   },
 
+  attachCommentsAndFormatAST(ast, opts) {
+    const originalText = opts.originalText;
+    delete opts.originalText;
+    opts = normalizeOptions(opts);
+    opts.originalText = originalText;
+    attachComments(originalText, ast, opts);
+    const doc = printAstToDoc(ast, opts);
+    return printDocToString(doc, opts);
+  },
+
   // Doesn't handle shebang for now
   formatDoc(doc, opts) {
     opts = normalizeOptions(opts);
