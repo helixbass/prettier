@@ -134,6 +134,19 @@ function trim(out) {
   return trimCount;
 }
 
+function getVisibleGroupMode({ type, offset = 0, visibleGroups }) {
+  for (let i = visibleGroups.length - 1; i >= 0; i--) {
+    const visibleGroup = visibleGroups[i];
+    if (visibleGroup.type !== type) {
+      continue;
+    }
+    if (offset-- === 0) {
+      return visibleGroup.mode;
+    }
+  }
+  return MODE_FLAT;
+}
+
 function fits(next, restCommands, width, options, mustBeFlat) {
   let restIdx = restCommands.length;
   const cmds = [next];
@@ -156,6 +169,7 @@ function fits(next, restCommands, width, options, mustBeFlat) {
     const ind = x[0];
     const mode = x[1];
     const doc = x[2];
+    const visibleGroups = x[3];
 
     if (typeof doc === "string") {
       out.push(doc);
@@ -165,16 +179,26 @@ function fits(next, restCommands, width, options, mustBeFlat) {
       switch (doc.type) {
         case "concat":
           for (let i = doc.parts.length - 1; i >= 0; i--) {
-            cmds.push([ind, mode, doc.parts[i]]);
+            cmds.push([ind, mode, doc.parts[i], visibleGroups]);
           }
 
           break;
         case "indent":
-          cmds.push([makeIndent(ind, options), mode, doc.contents]);
+          cmds.push([
+            makeIndent(ind, options),
+            mode,
+            doc.contents,
+            visibleGroups
+          ]);
 
           break;
         case "align":
-          cmds.push([makeAlign(ind, doc.n, options), mode, doc.contents]);
+          cmds.push([
+            makeAlign(ind, doc.n, options),
+            mode,
+            doc.contents,
+            visibleGroups
+          ]);
 
           break;
         case "trim":
@@ -182,10 +206,29 @@ function fits(next, restCommands, width, options, mustBeFlat) {
 
           break;
         case "group":
+          if (doc.break == null && doc.breakIfVisibleTypeBroke) {
+            const { offset, type } = doc.breakIfVisibleTypeBroke;
+            if (
+              getVisibleGroupMode({ type, offset, visibleGroups }) ===
+              MODE_BREAK
+            ) {
+              doc.break = true;
+            }
+          }
           if (mustBeFlat && doc.break) {
             return false;
           }
-          cmds.push([ind, doc.break ? MODE_BREAK : mode, doc.contents]);
+          cmds.push([
+            ind,
+            doc.break ? MODE_BREAK : mode,
+            doc.contents,
+            doc.visibleType
+              ? [
+                  ...(visibleGroups || []),
+                  { type: doc.visibleType, mode: doc.break ? MODE_BREAK : mode }
+                ]
+              : visibleGroups
+          ]);
 
           if (doc.id) {
             groupModeMap[doc.id] = cmds[cmds.length - 1][1];
@@ -193,25 +236,36 @@ function fits(next, restCommands, width, options, mustBeFlat) {
           break;
         case "fill":
           for (let i = doc.parts.length - 1; i >= 0; i--) {
-            cmds.push([ind, mode, doc.parts[i]]);
+            cmds.push([ind, mode, doc.parts[i], visibleGroups]);
           }
 
           break;
         case "if-break": {
-          const groupMode = doc.groupId ? groupModeMap[doc.groupId] : mode;
+          const groupMode = doc.groupId
+            ? groupModeMap[doc.groupId]
+            : doc.visibleType
+              ? getVisibleGroupMode({
+                  type: doc.visibleType,
+                  offset: doc.offset,
+                  visibleGroups
+                })
+              : mode;
           if (groupMode === MODE_BREAK) {
             if (doc.breakContents) {
-              cmds.push([ind, mode, doc.breakContents]);
+              cmds.push([ind, mode, doc.breakContents, visibleGroups]);
             }
           }
           if (groupMode === MODE_FLAT) {
             if (doc.flatContents) {
-              cmds.push([ind, mode, doc.flatContents]);
+              cmds.push([ind, mode, doc.flatContents, visibleGroups]);
             }
           }
 
           break;
         }
+        case "block-visible":
+          cmds.push([ind, mode, doc.contents, []]);
+          break;
         case "line":
           switch (mode) {
             // fallthrough
@@ -246,7 +300,7 @@ function printDocToString(doc, options) {
   // cmds is basically a stack. We've turned a recursive call into a
   // while loop which is much faster. The while loop below adds new
   // cmds to the array instead of recursively calling `print`.
-  const cmds = [[rootIndent(), MODE_BREAK, doc]];
+  const cmds = [[rootIndent(), MODE_BREAK, doc, []]];
   const out = [];
   let shouldRemeasure = false;
   let lineSuffix = [];
@@ -256,6 +310,7 @@ function printDocToString(doc, options) {
     const ind = x[0];
     const mode = x[1];
     const doc = x[2];
+    const visibleGroups = x[3];
 
     if (typeof doc === "string") {
       out.push(doc);
@@ -269,23 +324,42 @@ function printDocToString(doc, options) {
           break;
         case "concat":
           for (let i = doc.parts.length - 1; i >= 0; i--) {
-            cmds.push([ind, mode, doc.parts[i]]);
+            cmds.push([ind, mode, doc.parts[i], visibleGroups]);
           }
 
           break;
         case "indent":
-          cmds.push([makeIndent(ind, options), mode, doc.contents]);
+          cmds.push([
+            makeIndent(ind, options),
+            mode,
+            doc.contents,
+            visibleGroups
+          ]);
 
           break;
         case "align":
-          cmds.push([makeAlign(ind, doc.n, options), mode, doc.contents]);
+          cmds.push([
+            makeAlign(ind, doc.n, options),
+            mode,
+            doc.contents,
+            visibleGroups
+          ]);
 
           break;
         case "trim":
           pos -= trim(out);
 
           break;
-        case "group":
+        case "group": {
+          if (doc.break == null && doc.breakIfVisibleTypeBroke) {
+            const { offset, type } = doc.breakIfVisibleTypeBroke;
+            if (
+              getVisibleGroupMode({ type, offset, visibleGroups }) ===
+              MODE_BREAK
+            ) {
+              doc.break = true;
+            }
+          }
           switch (mode) {
             case MODE_FLAT:
               if (!shouldRemeasure) {
@@ -302,7 +376,17 @@ function printDocToString(doc, options) {
             case MODE_BREAK: {
               shouldRemeasure = false;
 
-              const next = [ind, MODE_FLAT, doc.contents];
+              const next = [
+                ind,
+                MODE_FLAT,
+                doc.contents,
+                doc.visibleType
+                  ? [
+                      ...(visibleGroups || []),
+                      { type: doc.visibleType, mode: MODE_FLAT }
+                    ]
+                  : visibleGroups
+              ];
               const rem = width - pos;
 
               if (!doc.break && fits(next, cmds, rem, options)) {
@@ -331,7 +415,22 @@ function printDocToString(doc, options) {
                         break;
                       } else {
                         const state = doc.expandedStates[i];
-                        const cmd = [ind, MODE_FLAT, state];
+                        const useMode =
+                          doc.firstBreakingIndex != null &&
+                          i >= doc.firstBreakingIndex
+                            ? MODE_BREAK
+                            : MODE_FLAT;
+                        const cmd = [
+                          ind,
+                          useMode,
+                          state,
+                          doc.visibleType
+                            ? [
+                                ...(visibleGroups || []),
+                                { type: doc.visibleType, mode: useMode }
+                              ]
+                            : visibleGroups
+                        ];
 
                         if (fits(cmd, cmds, rem, options)) {
                           cmds.push(cmd);
@@ -350,10 +449,20 @@ function printDocToString(doc, options) {
             }
           }
 
+          const groupMode = cmds[cmds.length - 1][1];
           if (doc.id) {
-            groupModeMap[doc.id] = cmds[cmds.length - 1][1];
+            groupModeMap[doc.id] = groupMode;
+          }
+          if (!cmds[cmds.length - 1][3]) {
+            cmds[cmds.length - 1][3] = doc.visibleType
+              ? [
+                  ...(visibleGroups || []),
+                  { type: doc.visibleType, mode: groupMode }
+                ]
+              : visibleGroups;
           }
           break;
+        }
         // Fills each line with as much code as possible before moving to a new
         // line with the same indentation.
         //
@@ -383,8 +492,8 @@ function printDocToString(doc, options) {
           }
 
           const content = parts[0];
-          const contentFlatCmd = [ind, MODE_FLAT, content];
-          const contentBreakCmd = [ind, MODE_BREAK, content];
+          const contentFlatCmd = [ind, MODE_FLAT, content, visibleGroups];
+          const contentBreakCmd = [ind, MODE_BREAK, content, visibleGroups];
           const contentFits = fits(contentFlatCmd, [], rem, options, true);
 
           if (parts.length === 1) {
@@ -397,8 +506,13 @@ function printDocToString(doc, options) {
           }
 
           const whitespace = parts[1];
-          const whitespaceFlatCmd = [ind, MODE_FLAT, whitespace];
-          const whitespaceBreakCmd = [ind, MODE_BREAK, whitespace];
+          const whitespaceFlatCmd = [ind, MODE_FLAT, whitespace, visibleGroups];
+          const whitespaceBreakCmd = [
+            ind,
+            MODE_BREAK,
+            whitespace,
+            visibleGroups
+          ];
 
           if (parts.length === 2) {
             if (contentFits) {
@@ -417,14 +531,15 @@ function printDocToString(doc, options) {
           // elements to a new array would make this algorithm quadratic,
           // which is unusable for large arrays (e.g. large texts in JSX).
           parts.splice(0, 2);
-          const remainingCmd = [ind, mode, fill(parts)];
+          const remainingCmd = [ind, mode, fill(parts), visibleGroups];
 
           const secondContent = parts[0];
 
           const firstAndSecondContentFlatCmd = [
             ind,
             MODE_FLAT,
-            concat([content, whitespace, secondContent])
+            concat([content, whitespace, secondContent]),
+            visibleGroups
           ];
           const firstAndSecondContentFits = fits(
             firstAndSecondContentFlatCmd,
@@ -450,26 +565,37 @@ function printDocToString(doc, options) {
           break;
         }
         case "if-break": {
-          const groupMode = doc.groupId ? groupModeMap[doc.groupId] : mode;
+          const groupMode = doc.groupId
+            ? groupModeMap[doc.groupId]
+            : doc.visibleType
+              ? getVisibleGroupMode({
+                  type: doc.visibleType,
+                  offset: doc.offset,
+                  visibleGroups
+                })
+              : mode;
           if (groupMode === MODE_BREAK) {
             if (doc.breakContents) {
-              cmds.push([ind, mode, doc.breakContents]);
+              cmds.push([ind, mode, doc.breakContents, visibleGroups]);
             }
           }
           if (groupMode === MODE_FLAT) {
             if (doc.flatContents) {
-              cmds.push([ind, mode, doc.flatContents]);
+              cmds.push([ind, mode, doc.flatContents, visibleGroups]);
             }
           }
 
           break;
         }
+        case "block-visible":
+          cmds.push([ind, mode, doc.contents, []]);
+          break;
         case "line-suffix":
-          lineSuffix.push([ind, mode, doc.contents]);
+          lineSuffix.push([ind, mode, doc.contents, visibleGroups]);
           break;
         case "line-suffix-boundary":
           if (lineSuffix.length > 0) {
-            cmds.push([ind, mode, { type: "line", hard: true }]);
+            cmds.push([ind, mode, { type: "line", hard: true }, visibleGroups]);
           }
           break;
         case "line":
@@ -496,7 +622,7 @@ function printDocToString(doc, options) {
 
             case MODE_BREAK:
               if (lineSuffix.length) {
-                cmds.push([ind, mode, doc]);
+                cmds.push([ind, mode, doc, visibleGroups]);
                 [].push.apply(cmds, lineSuffix.reverse());
                 lineSuffix = [];
                 break;
