@@ -758,7 +758,10 @@ function printPathNoParens(path, options, print, args) {
                 /* printTypeParams */ true
               ),
               printReturnType(path, print, options)
-            ])
+            ]),
+            {
+              visibleType: "paramsAndReturnType"
+            }
           )
         );
       }
@@ -1270,6 +1273,14 @@ function printPathNoParens(path, options, print, args) {
             options.locStart(n),
             options.locStart(firstProperty)
           ));
+      const shouldHug =
+        n.type === "ObjectPattern" &&
+        parent &&
+        shouldHugArguments(parent) &&
+        parent.params[0] === n;
+      const breakIfVisibleTypeBroke = shouldHug
+        ? { type: "paramsAndReturnType" }
+        : null;
       const isFlowInterfaceLikeBody =
         isTypeAnnotation &&
         parent &&
@@ -1370,20 +1381,20 @@ function printPathNoParens(path, options, print, args) {
       // type
       const parentParentParent = path.getParentNode(2);
       if (
-        (n.type === "ObjectPattern" &&
-          parent &&
-          shouldHugArguments(parent) &&
-          parent.params[0] === n) ||
-        (shouldHugType(n) &&
-          parentParentParent &&
-          shouldHugArguments(parentParentParent) &&
-          parentParentParent.params[0].typeAnnotation &&
-          parentParentParent.params[0].typeAnnotation.typeAnnotation === n)
+        shouldHugType(n) &&
+        parentParentParent &&
+        shouldHugArguments(parentParentParent) &&
+        parentParentParent.params[0].typeAnnotation &&
+        parentParentParent.params[0].typeAnnotation.typeAnnotation === n
       ) {
         return content;
       }
 
-      return group(content, { shouldBreak });
+      const groupOpts = {
+        shouldBreak,
+        breakIfVisibleTypeBroke
+      };
+      return group(content, groupOpts);
     }
     // Babel 6
     case "ObjectProperty": // Non-standard AST node type.
@@ -3667,7 +3678,10 @@ function printMethod(path, options, print) {
             concat([
               printFunctionParams(valuePath, print, options),
               printReturnType(valuePath, print, options)
-            ])
+            ]),
+            {
+              visibleType: "paramsAndReturnType"
+            }
           )
         ],
         "value"
@@ -4139,7 +4153,10 @@ function printFunctionDeclaration(path, print, options) {
       concat([
         printFunctionParams(path, print, options),
         printReturnType(path, print, options)
-      ])
+      ]),
+      {
+        visibleType: "paramsAndReturnType"
+      }
     ),
     n.body ? " " : "",
     path.call(print, "body")
@@ -4180,7 +4197,10 @@ function printObjectMethod(path, options, print) {
       concat([
         printFunctionParams(path, print, options),
         printReturnType(path, print, options)
-      ])
+      ]),
+      {
+        visibleType: "paramsAndReturnType"
+      }
     ),
     " ",
     path.call(print, "body")
