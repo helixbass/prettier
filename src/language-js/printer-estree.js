@@ -4017,7 +4017,7 @@ function printArgumentsList(path, options, print) {
 
     // dump(printedExpanded[0]);
     return concat([
-      somePrintedArgumentsWillBreak ? breakParent : "",
+      // somePrintedArgumentsWillBreak ? breakParent : "",
       conditionalGroup(
         [
           concat([
@@ -4061,8 +4061,8 @@ function printArgumentsList(path, options, print) {
       softline,
       ")"
     ]),
-    { shouldBreak: printedArguments.some(willBreak) || anyArgEmptyLine }
-    // { shouldBreak:  anyArgEmptyLine }
+    // { shouldBreak: printedArguments.some(willBreak) || anyArgEmptyLine }
+    { shouldBreak: anyArgEmptyLine }
   );
 }
 

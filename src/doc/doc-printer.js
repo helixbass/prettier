@@ -9,6 +9,7 @@ let groupModeMap;
 
 const MODE_BREAK = 1;
 const MODE_FLAT = 2;
+const MODE_FLAT_REMEASURE = 3;
 
 function rootIndent() {
   return { value: "", length: 0, queue: [] };
@@ -238,7 +239,7 @@ function fits(
               cmds.push([ind, mode, doc.breakContents]);
             }
           }
-          if (groupMode === MODE_FLAT) {
+          if (groupMode === MODE_FLAT || groupMode === MODE_FLAT_REMEASURE) {
             if (doc.flatContents) {
               cmds.push([ind, mode, doc.flatContents]);
             }
@@ -250,6 +251,7 @@ function fits(
           switch (mode) {
             // fallthrough
             case MODE_FLAT:
+            case MODE_FLAT_REMEASURE:
               if (!doc.hard) {
                 if (!doc.soft) {
                   out.push(" ");
@@ -259,7 +261,7 @@ function fits(
 
                 break;
               }
-              // console.log('hard line', {hasCheckedWholeCommand})
+              // console.log("hard line", { hasCheckedWholeCommand });
               // return true;
               hasBroken = true;
               break;
@@ -289,7 +291,6 @@ function printDocToString(doc, options) {
   // cmds to the array instead of recursively calling `print`.
   const cmds = [[rootIndent(), MODE_BREAK, doc]];
   const out = [];
-  let shouldRemeasure = false;
   let lineSuffix = [];
 
   while (cmds.length !== 0) {
@@ -328,12 +329,6 @@ function printDocToString(doc, options) {
           break;
         case "group":
           // dump({ group: doc });
-          if (
-            doc.contents.parts &&
-            doc.contents.parts[doc.contents.parts.length - 3] === ","
-          ) {
-            // dump({ doc });
-          }
           switch (mode) {
             case MODE_FLAT:
               // if (doc.expandedStates) {
@@ -347,24 +342,25 @@ function printDocToString(doc, options) {
               // ) {
               //   console.log("flat", { shouldRemeasure });
               // }
-              if (!shouldRemeasure) {
-                cmds.push([
-                  ind,
-                  doc.break ? MODE_BREAK : MODE_FLAT,
-                  doc.contents
-                ]);
-                // if (doc.break) {
-                //   dump({ cmd: cmds[cmds.length - 1] });
-                // }
+              cmds.push([
+                ind,
+                doc.break ? MODE_BREAK : MODE_FLAT,
+                doc.contents
+              ]);
+              // if (doc.break) {
+              //   dump({ cmd: cmds[cmds.length - 1] });
+              // }
 
-                break;
-              }
+              break;
             // fallthrough
 
+            case MODE_FLAT_REMEASURE:
             case MODE_BREAK: {
-              shouldRemeasure = false;
-
-              const next = [ind, MODE_FLAT, doc.contents];
+              const next = [
+                ind,
+                doc.expandedStates ? MODE_FLAT_REMEASURE : MODE_FLAT,
+                doc.contents
+              ];
               const rem = width - pos;
 
               // if (doc.expandedStates) {
@@ -406,7 +402,7 @@ function printDocToString(doc, options) {
                         break;
                       } else {
                         const state = doc.expandedStates[i];
-                        const cmd = [ind, MODE_FLAT, state];
+                        const cmd = [ind, MODE_FLAT_REMEASURE, state];
 
                         if (
                           fits(cmd, cmds, rem, options, null, {
@@ -546,7 +542,7 @@ function printDocToString(doc, options) {
               cmds.push([ind, mode, doc.breakContents]);
             }
           }
-          if (groupMode === MODE_FLAT) {
+          if (groupMode === MODE_FLAT || groupMode === MODE_FLAT_REMEASURE) {
             if (doc.flatContents) {
               cmds.push([ind, mode, doc.flatContents]);
             }
@@ -565,6 +561,7 @@ function printDocToString(doc, options) {
         case "line":
           switch (mode) {
             case MODE_FLAT:
+            case MODE_FLAT_REMEASURE:
               if (!doc.hard) {
                 if (!doc.soft) {
                   out.push(" ");
@@ -573,14 +570,6 @@ function printDocToString(doc, options) {
                 }
 
                 break;
-              } else {
-                // This line was forced into the output even if we
-                // were in flattened mode, so we need to tell the next
-                // group that no matter what, it needs to remeasure
-                // because the previous measurement didn't accurately
-                // capture the entire expression (this is necessary
-                // for nested groups)
-                shouldRemeasure = true;
               }
             // fallthrough
 
@@ -636,4 +625,4 @@ function printDocToString(doc, options) {
 }
 
 module.exports = { printDocToString };
-const dump = obj => console.log(require("util").inspect(obj, false, 20));
+const dump = obj => console.log(require("util").inspect(obj, false, 70));
