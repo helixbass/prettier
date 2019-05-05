@@ -4015,6 +4015,7 @@ function printArgumentsList(path, options, print) {
 
     const somePrintedArgumentsWillBreak = printedArguments.some(willBreak);
 
+    // dump(printedExpanded[0]);
     return concat([
       somePrintedArgumentsWillBreak ? breakParent : "",
       conditionalGroup(
@@ -4034,6 +4035,7 @@ function printArgumentsList(path, options, print) {
                 "(",
                 group(printedExpanded[0], { shouldBreak: true }),
                 concat(printedExpanded.slice(1)),
+                // "YYY",
                 ")"
               ])
             : concat([
@@ -4060,6 +4062,7 @@ function printArgumentsList(path, options, print) {
       ")"
     ]),
     { shouldBreak: printedArguments.some(willBreak) || anyArgEmptyLine }
+    // { shouldBreak:  anyArgEmptyLine }
   );
 }
 
@@ -5596,7 +5599,7 @@ function printJSXElement(path, options, print) {
   }
 
   return conditionalGroup([
-    group(concat([openingLines, concat(children), closingLines])),
+    concat([openingLines, concat(children), closingLines]),
     multiLineElem
   ]);
 }
@@ -6560,3 +6563,4 @@ module.exports = {
     remaining: handleComments.handleRemainingComment
   }
 };
+const dump = obj => console.log(require("util").inspect(obj, false, null));

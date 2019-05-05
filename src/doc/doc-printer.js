@@ -135,15 +135,48 @@ function trim(out) {
   return trimCount;
 }
 
-function fits(next, restCommands, width, options, mustBeFlat) {
+function fits(
+  next,
+  restCommands,
+  width,
+  options,
+  mustBeFlat,
+  {
+    // checkLastLine,
+    isConditionalGroupOption
+  } = {}
+) {
   let restIdx = restCommands.length;
   const cmds = [next];
   // `out` is only used for width counting because `trim` requires to look
   // backwards for space characters.
   const out = [];
+  let hasCheckedWholeCommand = false;
+  let hasBroken = false;
+  // if (checkLastLine) {
+  //   console.log("starting");
+  // }
   while (width >= 0) {
+    // if (checkLastLine && hasBroken) {
+    //   console.log({ hasBroken, hasCheckedWholeCommand, restIdx, cmds });
+    // }
+    if (hasBroken) {
+      if (isConditionalGroupOption) {
+        // dump({ cmds });
+        return true;
+      }
+      // if (checkLastLine) {
+      //   if (hasCheckedWholeCommand) {
+      //     return true;
+      //   }
+      // } else {
+      return hasCheckedWholeCommand;
+      // }
+    }
     if (cmds.length === 0) {
+      hasCheckedWholeCommand = true;
       if (restIdx === 0) {
+        // console.log("fin");
         return true;
       }
       cmds.push(restCommands[restIdx - 1]);
@@ -226,10 +259,16 @@ function fits(next, restCommands, width, options, mustBeFlat) {
 
                 break;
               }
-              return true;
+              // console.log('hard line', {hasCheckedWholeCommand})
+              // return true;
+              hasBroken = true;
+              break;
 
             case MODE_BREAK:
-              return true;
+              // console.log('break line', {hasCheckedWholeCommand})
+              // dump({cmds, doc})
+              // return true;
+              hasBroken = true;
           }
           break;
       }
@@ -239,6 +278,7 @@ function fits(next, restCommands, width, options, mustBeFlat) {
 }
 
 function printDocToString(doc, options) {
+  // dump(doc);
   groupModeMap = {};
 
   const width = options.printWidth;
@@ -287,14 +327,35 @@ function printDocToString(doc, options) {
 
           break;
         case "group":
+          // dump({ group: doc });
+          if (
+            doc.contents.parts &&
+            doc.contents.parts[doc.contents.parts.length - 3] === ","
+          ) {
+            // dump({ doc });
+          }
           switch (mode) {
             case MODE_FLAT:
+              // if (doc.expandedStates) {
+              //   console.log({
+              //     shouldRemeasure
+              //   });
+              // }
+              // if (
+              //   doc.contents.type === "concat" &&
+              //   doc.contents.parts[0] === "{"
+              // ) {
+              //   console.log("flat", { shouldRemeasure });
+              // }
               if (!shouldRemeasure) {
                 cmds.push([
                   ind,
                   doc.break ? MODE_BREAK : MODE_FLAT,
                   doc.contents
                 ]);
+                // if (doc.break) {
+                //   dump({ cmd: cmds[cmds.length - 1] });
+                // }
 
                 break;
               }
@@ -306,7 +367,20 @@ function printDocToString(doc, options) {
               const next = [ind, MODE_FLAT, doc.contents];
               const rem = width - pos;
 
-              if (!doc.break && fits(next, cmds, rem, options)) {
+              // if (doc.expandedStates) {
+              //   console.log({
+              //     fits: fits(next, cmds, rem, options, null, {
+              //       checkLastLine: !!doc.expandedStates
+              //     })
+              //   });
+              // }
+              if (
+                !doc.break &&
+                fits(next, cmds, rem, options, null, {
+                  checkLastLine: !!doc.expandedStates,
+                  isConditionalGroupOption: !!doc.expandedStates
+                })
+              ) {
                 cmds.push(next);
               } else {
                 // Expanded states are a rare case where a document
@@ -334,8 +408,14 @@ function printDocToString(doc, options) {
                         const state = doc.expandedStates[i];
                         const cmd = [ind, MODE_FLAT, state];
 
-                        if (fits(cmd, cmds, rem, options)) {
+                        if (
+                          fits(cmd, cmds, rem, options, null, {
+                            // checkLastLine: true
+                            isConditionalGroupOption: true
+                          })
+                        ) {
                           cmds.push(cmd);
+                          // dump({ fits: cmd, i });
 
                           break;
                         }
@@ -386,7 +466,16 @@ function printDocToString(doc, options) {
           const content = parts[0];
           const contentFlatCmd = [ind, MODE_FLAT, content];
           const contentBreakCmd = [ind, MODE_BREAK, content];
-          const contentFits = fits(contentFlatCmd, [], rem, options, true);
+          const contentFits = fits(
+            contentFlatCmd,
+            parts.length === 2 ? [...cmds, [ind, MODE_FLAT, parts[1]]] : [],
+            rem,
+            options,
+            true
+          );
+          // if (parts[0].type === "concat") {
+          //   dump({ isTwo: parts.length === 2, contentFits, rem, pos });
+          // }
 
           if (parts.length === 1) {
             if (contentFits) {
@@ -547,3 +636,4 @@ function printDocToString(doc, options) {
 }
 
 module.exports = { printDocToString };
+const dump = obj => console.log(require("util").inspect(obj, false, 20));

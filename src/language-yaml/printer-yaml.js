@@ -141,6 +141,7 @@ function genericPrint(path, options, print) {
 function _print(node, parentNode, path, options, print) {
   switch (node.type) {
     case "root":
+      // dump(node);
       return concat([
         join(
           hardline,
@@ -369,6 +370,7 @@ function _print(node, parentNode, path, options, print) {
       return join(hardline, path.map(print, "children"));
     case "mappingItem":
     case "flowMappingItem": {
+      // dump(node);
       const isEmptyMappingKey = isEmptyNode(node.key);
       const isEmptyMappingValue = isEmptyNode(node.value);
 
@@ -401,6 +403,7 @@ function _print(node, parentNode, path, options, print) {
       const forceExplicitKey =
         hasLeadingComments(node.value) || !isInlineNode(node.key.content);
 
+      // dump({ value });
       return forceExplicitKey
         ? concat([
             "? ",
@@ -734,3 +737,4 @@ module.exports = {
   massageAstNode: clean,
   insertPragma
 };
+const dump = obj => console.log(require("util").inspect(obj, false, null));
