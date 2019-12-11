@@ -63,6 +63,7 @@ module.exports = {
   __debug: {
     parse: withPlugins(core.parse),
     formatAST: withPlugins(core.formatAST),
+    attachCommentsAndFormatAST: withPlugins(core.attachCommentsAndFormatAST),
     formatDoc: withPlugins(core.formatDoc),
     printToDoc: withPlugins(core.printToDoc),
     printDocToString: withPlugins(core.printDocToString)
